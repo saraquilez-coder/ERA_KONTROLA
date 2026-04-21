@@ -54,9 +54,7 @@ function finalizarTodo() {
         intervencion = null; eqs = [];
         localStorage.removeItem('bvg_int_data');
         localStorage.removeItem('eq_bvg_timer_fix');
-        
-        // Corrección: Recarga la página para volver al inicio
-        location.reload(); 
+        checkActiva();
     }
 }
 
@@ -119,15 +117,41 @@ function render() {
 
         if (e.activo) hJump += `<div class="btn-jump" onclick="document.getElementById('card-${i}').scrollIntoView({behavior:'smooth'})">${e.n} ${e.alerta?'⚠️':''}</div>`;
 
+        let msgDisplay = "¡REVISIÓN REQUERIDA!";
+        if (alertaMinutos) msgDisplay = `ACTUALIZACIÓN DE PRESIÓN ${minT} MINUTOS TRABAJO`;
+        if (avisoRegreso) msgDisplay = "¡AVISO! PRESIÓN DE REGRESO ALCANZADA (INFORMAR EQUIPO)";
+        if (e.pA <= 50) msgDisplay = "¡ALERTA! EQUIPO EN RESERVA - SALIDA INMEDIATA";
+
         let cardHtml = `
             <div id="card-${i}" class="card ${e.activo?'':'fuera'} ${e.alerta?'alerta-equipo':''}">
+                <div class="msg-alerta">${msgDisplay}</div>
                 <div class="card-name">${e.n}</div>
+                <div class="n-prof-display">Nº PROF: ${e.prof.filter(p=>p!=="-").join(" | ")}</div>
+                <div class="mision-box">
+                    <div><b>LOCALIZACIÓN:</b> ${e.sit.toUpperCase()}</div>
+                    <div><b>OBJETIVO:</b> ${e.obj.toUpperCase()}</div>
+                </div>
                 <div class="seccion">
-                    <div class="dato"><span>Hora Entrada / Salida:</span> <span class="val">${e.hE} / ${e.hSalida}</span></div>
-                    <div class="dato"><span>Presión Entrada / Actual:</span> <span class="val">${Math.round(e.pE)} / ${Math.round(e.pA)} bar</span></div>
+                    <div class="dato"><span>Hora / Presión Entrada:</span> <span class="val">${e.hE} / ${Math.round(e.pE)} bar</span></div>
+                    <div class="dato"><span>Previsión Salida (55 l/min):</span> <span class="val destacado-rojo">${e.hS55}</span></div>
+                    <div class="dato"><span>Previsión Salida (consumo medio):</span> <span class="val destacado-verde">${e.hSMed}</span></div>
+                    <div class="dato"><span>Presión Seguridad Regreso:</span> <span class="val destacado-rojo">${Math.round(e.pSegReg)} bar</span></div>
+                </div>
+                <div class="seccion">
+                    <div class="dato"><span>Presión Actual:</span> <span class="val destacado-azul">${Math.round(e.pA)} bar</span></div>
+                    <div class="dato"><span>Tiempo Trabajo Actual:</span> <span class="val">${formatTimeMS(tAct)}</span></div>
+                    <div class="dato"><span>Tiempo Trabajo Total:</span> <span class="val destacado-rojo">${formatTimeMS(e.activo ? (ah - e.tI + e.tAcumuladoPrevio) : e.tAcumuladoPrevio)}</span></div>
+                    <div class="dato"><span>Última Actualización Presión:</span> <span class="val">${e.activo ? e.hUltActualizacion : 'PARADO'}</span></div>
+                </div>
+                <div class="seccion">
+                    <div class="dato"><span>Consumo Medio:</span> <span class="val">${Math.round(e.rMed)} l/min</span></div>
+                    <div class="dato"><span>Consumo Instantáneo:</span> <span class="val destacado-azul">${Math.round(e.rInst)} l/min</span></div>
+                    <div class="dato"><span>Autonomía (55 l/min):</span> <span class="val destacado-rojo">${e.pA<=50?'SALIDA':Math.round(((e.pA-50)*6)/55)+' min'}</span></div>
+                    <div class="dato"><span>Autonomía Media:</span> <span class="val destacado-verde">${e.pA<=50?'SALIDA':(e.rMed>0?Math.round(e.autMed)+' min':'--')}</span></div>
                 </div>
                 ${e.activo ? `
                     <button class="btn btn-orange" onclick="showModal(${i})">ACTUALIZAR DATOS</button>
+                    ${e.alerta ? `<button class="btn btn-silence" onclick="eqs[${i}].silenciado=true;render();">SILENCIAR ALARMA</button>` : ''}
                     <button class="btn btn-dark" onclick="setEstado(${i}, false)">FIN EQUIPO (SALIDA)</button>
                 ` : `
                     <button class="btn btn-blue" style="background:#28a745" onclick="reactivarEquipo(${i})">RE-ACTIVAR</button>
@@ -138,25 +162,28 @@ function render() {
 
     document.getElementById('quick-access').innerHTML = hJump;
     document.getElementById('L_ZONA').innerHTML = hZ;
-    document.getElementById('L_FUERA').innerHTML = hF != "" ? '<div class="separador">EQUIPOS FUERA</div>' + hF : "";
+    document.getElementById('L_FUERA').innerHTML = hF != "" ? '<div class="separador">EQUIPOS FUERA DE ZONA</div>' + hF : "";
     let tB = document.getElementById('timer-box');
-    if (cV) { tB.className = 'global-alerta'; tB.innerText = 'CONTROL'; if (cS && ah % 2000 < 1000) playAlertSound(); } else { tB.className = ''; tB.innerText = ''; }
+    if (cV) { tB.className = 'global-alerta'; tB.innerText = '¡CONTROL PENDIENTE!'; if (cS && ah % 2000 < 1000) playAlertSound(); } else { tB.className = ''; tB.innerText = ''; }
 }
 
 function setEstado(i, activo) { 
     if (!activo) {
         let ahora = Date.now();
-        eqs[i].hSalida = formatHora(ahora); 
+        eqs[i].hSalida = formatHora(ahora); // Capturamos la hora al hacer click en FIN EQUIPO (SALIDA)
         eqs[i].tAcumuladoPrevio += (ahora - eqs[i].tI);
         eqs[i].activo = activo;
+        eqs[i].alerta = false;
 
+        // Guardamos el tramo finalizado en el historial automáticamente
         let historial = JSON.parse(localStorage.getItem('bvg_historial')) || [];
-        historial.push({
+        let registro = {
             id: Date.now(),
             info: intervencion,
-            equipos: [JSON.parse(JSON.stringify(eqs[i]))],
+            equipos: [JSON.parse(JSON.stringify(eqs[i]))], // Guardamos la foto de este equipo al salir
             fecha: new Date().toLocaleString()
-        });
+        };
+        historial.push(registro);
         localStorage.setItem('bvg_historial', JSON.stringify(historial));
     } else {
         eqs[i].activo = activo;
@@ -168,8 +195,10 @@ function reactivarEquipo(i) {
     let b = prompt(`Bares Entrada:`, Math.round(eqs[i].pA));
     if(b) {
         let ah = Date.now(); eqs[i].pE = eqs[i].pA = parseInt(b); eqs[i].tI = ah; eqs[i].tU = ah; eqs[i].hE = formatHora(ah);
-        eqs[i].hSalida = "--:--";
-        eqs[i].activo = true; sync(); render();
+        eqs[i].hSalida = "--:--"; // Reseteamos hora de salida para el nuevo tramo
+        eqs[i].hUltActualizacion = formatHora(ah);
+        eqs[i].pSegReg = Math.round((parseInt(b) / 2) + 25);
+        eqs[i].activo = true; eqs[i].alerta = false; eqs[i].silenciado = false; eqs[i].informadoRegreso = false; eqs[i].hS55 = formatHora(ah + (((parseInt(b)-50)*6/55)*60000)); sync(); render();
     }
 }
 
@@ -179,6 +208,11 @@ function showModal(i) {
     document.getElementById('nB').value=Math.round(eqs[i].pA); 
     document.getElementById('nSit').value=eqs[i].sit; 
     document.getElementById('nObj').value=eqs[i].obj;
+    
+    let alertaReg = eqs[i].pA <= eqs[i].pSegReg;
+    document.getElementById('alerta-check-container').style.display = alertaReg ? 'block' : 'none';
+    document.getElementById('checkInformado').checked = eqs[i].informadoRegreso;
+
     document.getElementById('modal').style.display='flex'; 
 }
 
@@ -188,6 +222,10 @@ function saveData() {
     let b = document.getElementById('nB').value;
     if(b && idS != -1) {
         let ah = Date.now(); let v = parseInt(b);
+        
+        eqs[idS].informadoRegreso = document.getElementById('checkInformado').checked;
+        if(eqs[idS].informadoRegreso) eqs[idS].silenciado = true;
+
         if (v !== eqs[idS].pA) {
             let tMin = (ah - eqs[idS].tI) / 60000;
             if(tMin > 0.1) {
@@ -196,10 +234,19 @@ function saveData() {
                 eqs[idS].hSMed = formatHora(ah + (eqs[idS].autMed * 60000));
             }
             eqs[idS].rInst = ((eqs[idS].pA - v) * 6) / ((ah - eqs[idS].tU) / 60000);
-            eqs[idS].tU = ah; eqs[idS].hUltActualizacion = formatHora(ah); eqs[idS].pA = v;
+            eqs[idS].tU = ah; 
+            eqs[idS].hUltActualizacion = formatHora(ah); 
+            eqs[idS].pA = v;
         }
+
+        if(v > eqs[idS].pSegReg) {
+            eqs[idS].informadoRegreso = false;
+            eqs[idS].silenciado = false;
+        }
+
         eqs[idS].sit = document.getElementById('nSit').value; 
         eqs[idS].obj = document.getElementById('nObj').value;
+        
         hideModal(); sync(); render();
     }
 }
@@ -216,22 +263,46 @@ function renderHistorial() {
     let historial = JSON.parse(localStorage.getItem('bvg_historial')) || [];
     let html = "";
     historial.slice().reverse().forEach(reg => {
-        html += `<div style="background:white; padding:5px; margin-bottom:5px; color:black; font-size:0.8rem;"><b>${reg.fecha}</b> - ${reg.info.nombre.toUpperCase()}</div>`;
+        html += `
+            <div style="background:white; padding:10px; margin-bottom:5px; border-left:5px solid red; font-size:0.8rem; color:#000;">
+                <b>${reg.fecha}</b> - ${reg.info.nombre.toUpperCase()}<br>
+                ${reg.equipos.length} binomios registrados en este tramo.
+            </div>
+        `;
     });
-    document.getElementById('lista-historial').innerHTML = html || "No hay datos.";
+    document.getElementById('lista-historial').innerHTML = html || "No hay intervenciones guardadas.";
 }
 
 function exportarTodoCSV() {
     let historial = JSON.parse(localStorage.getItem('bvg_historial')) || [];
     if(historial.length === 0) return alert("No hay datos para exportar");
 
-    let columnas = ["Fecha Registro", "Intervencion", "Direccion", "Nombre Equipo", "Nº Profesionales", "Localizacion", "Objetivo", "Hora Entrada", "Presion Entrada (bar)", "Presion Final (bar)", "Consumo Real (bar)", "Consumo Medio (l/min)", "Consumo Instantáneo (l/min)", "Tiempo Trabajo Total", "Prevision Salida (55 l/min)", "Prevision Salida (Media)", "Hora Salida"];
-    
+    let columnas = [
+        "Fecha Registro",
+        "Intervencion",
+        "Direccion",
+        "Nombre Equipo",
+        "Nº Profesionales",
+        "Localizacion",
+        "Objetivo",
+        "Hora Entrada",
+        "Presion Entrada (bar)",
+        "Presion Final (bar)",
+        "Consumo Real (bar)",
+        "Consumo Medio (l/min)",
+        "Consumo Instantáneo (l/min)",
+        "Tiempo Trabajo Total",
+        "Prevision Salida (55 l/min)",
+        "Prevision Salida (Media)",
+        "Hora Salida" // Nueva Columna Final añadida
+    ];
+
     let csvContent = columnas.join(";") + "\n";
 
     historial.forEach(reg => {
         reg.equipos.forEach(e => {
             let consumoBar = e.pE - e.pA;
+            let tiempoTotal = formatTimeMS(e.tAcumuladoPrevio);
             let profesionales = e.prof.filter(p => p !== "-").join(" / ");
 
             let fila = [
@@ -248,10 +319,10 @@ function exportarTodoCSV() {
                 consumoBar,
                 Math.round(e.rMed),
                 Math.round(e.rInst),
-                formatTimeMS(e.tAcumuladoPrevio),
+                tiempoTotal,
                 e.hS55,
                 e.hSMed,
-                e.hSalida
+                e.hSalida // Dato exportado de la hora de salida
             ].join(";");
             csvContent += fila + "\n";
         });
