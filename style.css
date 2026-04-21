@@ -1,0 +1,57 @@
+:root { --rojo: #d32f2f; --azul: #0000ff; --verde: #008000; --gris: #f4f4f4; --borde: #ccc; --amarillo-bvg: #fffbe6; --alerta: #ffcc00; }
+body { font-family: sans-serif; margin: 0; padding: 10px; background: #fff; line-height: 1.4; color: #000; scroll-behavior: smooth; }
+
+.header { text-align: center; border-bottom: 1px solid var(--gris); padding-bottom: 5px; margin-bottom: 0px; }
+h1 { color: var(--rojo); margin: 0; font-size: 1.4rem; font-weight: 900; }
+.info-header { background: #333; color: white; padding: 8px; border-radius: 4px; margin: 5px 0; font-size: 0.9rem; text-align: left; }
+
+#timer-box { background: transparent; color: white; padding: 5px; text-align: center; font-weight: bold; border-radius: 4px; margin-bottom: 5px; min-height: 30px; display: flex; align-items: center; justify-content: center; }
+.global-alerta { background: var(--rojo) !important; animation: blink-red 1s infinite; }
+
+.form-zona { background: var(--gris); padding: 12px; border-radius: 10px; border: 1px solid #ddd; margin-bottom: 10px; }
+label { font-weight: bold; font-size: 0.8rem; color: #444; text-transform: uppercase; }
+input { width: 100%; padding: 12px; margin: 5px 0 10px 0; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+
+.n-prof-row { display: flex; gap: 5px; margin: 0; }
+.n-prof-row input { flex: 1; text-align: center; }
+
+#panel-control { display: none; } 
+
+#quick-access { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; padding: 5px; }
+.btn-jump { background: #eee; color: #333; border: 1px solid #ccc; padding: 8px 12px; border-radius: 4px; font-weight: bold; font-size: 0.9rem; cursor: pointer; flex-grow: 1; text-align: center; }
+
+.btn { width: 100%; padding: 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; display: block; font-size: 1rem; text-transform: uppercase; }
+.btn-blue { background: #007bff; }
+.btn-green { background: #28a745; margin-top: 10px; }
+.btn-reset { background: #8b0000; margin-top: 20px; }
+.btn-orange { background: #f39c12; color: #000; margin-top: 10px; }
+.btn-silence { background: #6c757d; color: white; margin-top: 10px; }
+.btn-dark { background: #333; margin-top: 10px; }
+
+.card { background: #fff; border-top: 4px solid var(--rojo); border-radius: 2px; padding: 15px; margin-top: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: relative; border-left: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee; }
+.card.alerta-equipo { background: var(--alerta); border-top-color: #000; animation: blink-yellow 1.5s infinite; }
+.card.fuera { opacity: 0.7; border-top-color: #888; background: #fafafa; filter: grayscale(0.5); }
+
+.msg-alerta { display: none; background: #000; color: #fff; text-align: center; font-weight: 900; padding: 5px; margin-bottom: 10px; border-radius: 4px; font-size: 0.9rem; }
+.alerta-equipo .msg-alerta { display: block; }
+
+.card-name { font-weight: bold; font-size: 1.4rem; margin-bottom: 5px; color: #000; }
+.n-prof-display { font-size: 0.85rem; color: #555; margin-bottom: 10px; font-weight: bold; }
+
+.mision-box { background: var(--amarillo-bvg); padding: 10px; border-radius: 8px; border: 1px solid #ffe58f; margin-bottom: 15px; }
+.seccion { border-top: 1px solid #f0f0f0; padding: 6px 0; }
+.dato { display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 1rem; }
+.val { font-weight: bold; color: #000; }
+
+.destacado-rojo { color: var(--rojo) !important; }
+.destacado-azul { color: var(--azul) !important; }
+.destacado-verde { color: var(--verde) !important; }
+
+#modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; justify-content: center; align-items: center; color: white; }
+.modal-content { width: 90%; background: #222; padding: 20px; border-radius: 10px; }
+
+.check-container { background: #444; padding: 10px; border-radius: 6px; margin: 10px 0; display: flex; align-items: center; gap: 10px; border: 1px solid var(--alerta); }
+.check-container input { width: 25px; height: 25px; margin: 0; }
+
+@keyframes blink-yellow { 0% { background: var(--alerta); } 50% { background: #fff1b8; } 100% { background: var(--alerta); } }
+@keyframes blink-red { 50% { opacity: 0.7; } }

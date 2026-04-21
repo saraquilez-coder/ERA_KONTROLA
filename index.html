@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#d32f2f">
+    
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <meta property="og:title" content="KONTROL_ERA BVG">
+    <meta property="og:description" content="Sistema de Control de Binomios y Consumos - Bomberos Vitoria-Gasteiz">
+    <meta property="og:image" content="https://saraquilez-coder.github.io/KONTROL_ERA_EXCEL/icon.png">
+    <meta property="og:url" content="https://saraquilez-coder.github.io/KONTROL_ERA_EXCEL/">
+    <meta property="og:type" content="website">
+
+    <link rel="stylesheet" href="style.css">
+    <title>KONTROL_ERA BVG</title>
+</head>
+<body>
+
+    <div class="header">
+        <h1>KONTROL_ERA</h1>
+        <div id="display-intervencion" style="display:none;" class="info-header">
+            <b id="txt-int-nom"></b><br>
+            <span id="txt-int-dir" style="font-size:0.8rem; opacity:0.8;"></span>
+        </div>
+    </div>
+
+    <div style="text-align:center; margin-bottom: 10px;">
+        <button class="btn btn-dark" style="display:inline-block; width:auto; padding: 10px;" onclick="toggleHistorial()">VER HISTORIAL</button>
+    </div>
+
+    <div id="seccion-historial" style="display:none; background:#eee; padding: 10px; margin-bottom: 20px; border-radius: 8px;">
+        <h3 style="color:black; margin-top:0;">Historial Reciente</h3>
+        <div id="lista-historial" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;"></div>
+        <button class="btn btn-orange" onclick="exportarTodoCSV()">EXPORTAR EXCEL (CSV)</button>
+    </div>
+
+    <div id="timer-box"></div>
+
+    <div class="container">
+        <div id="setup-intervencion" class="card">
+            <h2>NUEVA INTERVENCIÓN</h2>
+            <input type="text" id="int-nom" placeholder="NOMBRE INTERVENCIÓN (Ej: INCENDIO PISO)">
+            <input type="text" id="int-dir" placeholder="DIRECCIÓN">
+            <button class="btn btn-blue" onclick="iniciarIntervencion()">INICIAR PANEL DE CONTROL</button>
+        </div>
+
+        <div id="panel-control" class="card" style="display:none;">
+            <h2>AÑADIR BINOMIO</h2>
+            <input type="text" id="nom" placeholder="IDENTIFICADOR (Ej: B1 / TANQUE)">
+            <input type="number" id="bar" placeholder="PRESIÓN ENTRADA (BAR)">
+            
+            <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                <input type="text" id="np1" placeholder="PROF. 1" style="flex:1;">
+                <input type="text" id="np2" placeholder="PROF. 2" style="flex:1;">
+                <input type="text" id="np3" placeholder="PROF. 3" style="flex:1;">
+            </div>
+
+            <input type="text" id="sit" placeholder="LOCALIZACIÓN">
+            <input type="text" id="obj" placeholder="OBJETIVO">
+            <button class="btn btn-blue" onclick="addEquipo()">AÑADIR EQUIPO</button>
+        </div>
+
+        <div id="quick-access"></div>
+        <div id="L_ZONA"></div>
+        <div id="L_FUERA"></div>
+
+        <button class="btn btn-reset" onclick="finalizarTodo()">FINALIZAR INTERVENCIÓN</button>
+    </div>
+
+    <div id="modal">
+        <div class="modal-content">
+            <h2 id="mTit"></h2>
+            <div style="text-align: left;">
+                <p>Presión Actual (bar):</p>
+                <input type="number" id="nB" style="font-size: 2rem; text-align: center;">
+                
+                <div id="alerta-check-container" style="display:none;">
+                    <div class="check-container">
+                        <input type="checkbox" id="checkInformado">
+                        <label for="checkInformado" style="color:var(--alerta); font-size:1rem; cursor:pointer;"> EQUIPO INFORMADO DE PRESIÓN DE REGRESO</label>
+                    </div>
+                </div>
+
+                <p>Localización:</p>
+                <input type="text" id="nSit">
+                <p>Objetivo:</p>
+                <input type="text" id="nObj">
+            </div>
+            <button class="btn btn-blue" onclick="saveData()">GUARDAR Y CERRAR</button>
+            <button class="btn btn-reset" onclick="hideModal()">CANCELAR</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
