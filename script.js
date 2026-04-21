@@ -51,7 +51,7 @@ function checkActiva() {
 
 function finalizarTodo() {
     if(confirm("¿FINALIZAR INTERVENCIÓN TOTAL? Se guardará en el historial y se limpiará el panel.")) {
-        // 1. Guardar en historial
+        // 1. Guardar la intervención completa como un bloque único en el historial
         let historial = JSON.parse(localStorage.getItem('bvg_historial')) || [];
         historial.push({
             id: Date.now(),
@@ -61,13 +61,13 @@ function finalizarTodo() {
         });
         localStorage.setItem('bvg_historial', JSON.stringify(historial));
 
-        // 2. Limpiar datos de la sesión actual
-        intervencion = null;
+        // 2. Limpiar datos activos
+        intervencion = null; 
         eqs = [];
         localStorage.removeItem('bvg_int_data');
         localStorage.removeItem('eq_bvg_timer_fix');
         
-        // 3. CORRECCIÓN: Volver al inicio (resetear la App)
+        // 3. Volver al inicio (Reset de la App)
         window.location.href = window.location.pathname;
     }
 }
@@ -219,17 +219,21 @@ function toggleHistorial() {
 function renderHistorial() {
     let historial = JSON.parse(localStorage.getItem('bvg_historial')) || [];
     let html = "";
+    // Se muestra de más reciente a más antiguo
     historial.slice().reverse().forEach((reg, index) => {
         let idxOriginal = historial.length - 1 - index;
         html += `
             <div style="background:white; padding:10px; margin-bottom:10px; color:black; border-radius:5px; border-left:5px solid #d32f2f;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div><b>${reg.fecha}</b><br>${reg.info.nombre.toUpperCase()}</div>
+                    <div>
+                        <b>${reg.fecha}</b><br>
+                        ${reg.info.nombre.toUpperCase()}
+                    </div>
                     <button class="btn btn-blue" style="width:auto; padding:5px 10px; font-size:0.7rem;" onclick="descargarIntervencion(${idxOriginal})">EXCEL</button>
                 </div>
             </div>`;
     });
-    document.getElementById('lista-historial').innerHTML = html || "No hay datos.";
+    document.getElementById('lista-historial').innerHTML = html || "No hay intervenciones guardadas.";
 }
 
 function descargarIntervencion(idx) {
@@ -263,7 +267,7 @@ function descargarIntervencion(idx) {
     let url = URL.createObjectURL(blob);
     let link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `KONTROL_${reg.info.nombre.replace(/ /g, "_")}.csv`);
+    link.setAttribute("download", `KONTROL_ERA_${reg.info.nombre.replace(/ /g, "_")}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
