@@ -253,11 +253,18 @@ function render() {
         let cardHtml = `
            <div class="card-equipo ${claseParpadeo}" onclick="toggleDetalles(${i})" style="border-left-color: ${colD}">
                 <div class="card-header-resumen">
-                    <div class="circulo-presion" style="${estiloC}">
-                        <span style="font-size: 1.3rem;">${Math.round(e.pA)}</span>
-                        <span style="font-size: 0.6rem; color: #666;">BAR</span>
+                    <div class="circulo-presion" style="${estiloC} width: 80px; height: 80px; min-width: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative;">
+                        <div style="position: absolute; width: 66px; height: 66px; background: white; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <span style="font-size: 1.6rem; font-weight: bold; line-height: 1; color: #333;">${Math.round(e.pA)}</span>
+                            <span style="font-size: 0.65rem; color: #666; font-weight: bold;">BAR</span>
+                        </div>
                     </div>
-                    <div style="flex-grow: 1;">
+                    
+                    <div style="margin-left: auto; text-align: right; padding-top: 5px;">
+                        <div style="font-size: 0.65rem; color: #999; font-weight: bold; line-height: 1;">TIEMPO SESIÓN</div>
+                        <div style="font-weight: bold; font-size: 1.2rem; font-family: monospace; color: #2c3e50;">${formatTimeMS(tAct)}</div>
+                    </div>
+                    <div style="flex-basis: 100%; margin-top: 10px;">
                         <div style="font-weight: bold; font-size: 1.1rem; color: #333;">${e.n}</div>
                         <div style="color: #666; font-size: 0.85rem;font-weight: bold;"> ⚲ ${e.sit.toUpperCase()}</div>
                         <div style="color: #666; font-size: 0.85rem; font-weight: bold;"> ◎ OBJETIVO: ${e.obj.toUpperCase()}</div>
@@ -274,10 +281,7 @@ function render() {
                              Presión Seguridad Retorno: <b style="color:red">${Math.round(e.pSegReg)} bar</b>
                         </div>
                     </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 0.7rem; color: #999;">TIEMPO ACTUAL</div>
-                        <div style="font-weight: bold; font-size: 1.1rem; font-family: monospace;">${formatTimeMS(tAct)}</div>
-                    </div>
+                    
                 </div>
                 
                 <div id="detalles-${i}" class="detalles-expandidos ${claseM}">

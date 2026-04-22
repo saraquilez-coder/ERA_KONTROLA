@@ -71,9 +71,9 @@
             <input type="number" id="bar" placeholder="PRESIÓN ENTRADA (BAR)">
             
             <div style="display: flex; gap: 5px; margin-bottom: 10px;">
-                <input type="text" id="np1" placeholder="PROF. 1" style="flex:1;">
-                <input type="text" id="np2" placeholder="PROF. 2" style="flex:1;">
-                <input type="text" id="np3" placeholder="PROF. 3" style="flex:1;">
+            <input type="text" id="np1" placeholder="PROF. 1" style="flex:1;" inputmode="numeric" pattern="[0-9]*">
+            <input type="text" id="np2" placeholder="PROF. 2" style="flex:1;" inputmode="numeric" pattern="[0-9]*">
+            <input type="text" id="np3" placeholder="PROF. 3" style="flex:1;" inputmode="numeric" pattern="[0-9]*">
             </div>
 
             <input type="text" id="sit" placeholder="LOCALIZACIÓN">
@@ -108,10 +108,10 @@
                 <input type="text" id="nObj">
                 <p>Intervinientes:</p>
                 <div style="display: flex; gap: 5px;">
-                <input type="text" id="nnp1" placeholder="P1">
-                <input type="text" id="nnp2" placeholder="P2">
-                <input type="text" id="nnp3" placeholder="P3">
-                </div>
+                <input type="text" id="nnp1" placeholder="P1" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" id="nnp2" placeholder="P2" inputmode="numeric" pattern="[0-9]*">
+                <input type="text" id="nnp3" placeholder="P3" inputmode="numeric" pattern="[0-9]*">
+            </div>
                 
             </div>
             <button class="btn btn-blue" onclick="saveData()">GUARDAR Y CERRAR</button>
