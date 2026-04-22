@@ -56,24 +56,45 @@ input { width: 100%; padding: 12px; margin: 5px 0 10px 0; border: 1px solid #ccc
 @keyframes blink-yellow { 0% { background: var(--alerta); } 50% { background: #fff1b8; } 100% { background: var(--alerta); } }
 @keyframes blink-red { 50% { opacity: 0.7; } }
 
-/* Estilo de la Tarjeta */
+/* Alinea el logo y el texto en la misma línea */
+.header-main {
+    display: flex;
+    align-items: center;
+    justify-content: center; /* Centra el conjunto en la cabecera */
+    gap: 12px;               /* Espacio entre logo y texto */
+    margin-bottom: 5px;
+}
+
+/* Controla el tamaño del logo */
+.logo-img {
+    height: 45px;            /* Ajusta este valor según prefieras */
+    width: auto;
+    object-fit: contain;
+}
+
+/* Elimina márgenes del h1 para que no descuadre */
+.header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+/* --- ESTILO DE LA TARJETA --- */
 .card-equipo {
-    background: white;
+    background: #f4f4f4; /* Fondo gris claro como la imagen */
     border-radius: 12px;
     padding: 15px;
     margin-bottom: 15px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     cursor: pointer;
-    border-left: 6px solid #2ecc71;
     transition: all 0.2s ease;
+    border-left: 6px solid #ccc; /* Borde lateral por defecto */
 }
 
-/* El círculo con la presión */
+/* --- CÍRCULO DINÁMICO --- */
 .circulo-presion {
-    width: 65px;
-    height: 65px;
+    width: 70px;
+    height: 70px;
     border-radius: 50%;
-    border: 4px solid #2ecc71;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -81,23 +102,40 @@ input { width: 100%; padding: 12px; margin: 5px 0 10px 0; border: 1px solid #ccc
     font-weight: bold;
     margin-right: 15px;
     flex-shrink: 0;
+    position: relative;
+    background: #d1d1d1; /* El gris del borde "vacío" */
 }
 
-/* Contenedor de los datos principales */
-.card-header-resumen {
-    display: flex;
-    align-items: center;
+.circulo-presion::after {
+    content: "";
+    position: absolute;
+    width: 58px;
+    height: 58px;
+    background: #f4f4f4; /* Debe ser igual al fondo de la tarjeta */
+    border-radius: 50%;
+    z-index: 1;
 }
 
-/* La parte que está oculta por defecto */
+.circulo-presion span {
+    position: relative;
+    z-index: 2;
+}
+
+/* --- CONTROL DE DESPLEGABLE (LO QUE TE FALTA) --- */
 .detalles-expandidos {
-    display: none; 
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px solid #eee;
+    display: none; /* Mantiene la tarjeta cerrada por defecto */
+    width: 100%;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #ddd;
 }
 
-/* Clase para mostrar con el click */
-.mostrar {
-    display: block !important;
+.detalles-expandidos.mostrar {
+    display: block !important; /* La abre solo cuando haces click */
+}
+
+/* --- BOTONES --- */
+.btn-silence {
+    background: #5d6d7e !important;
+    color: white;
 }

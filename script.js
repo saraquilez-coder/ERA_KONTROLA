@@ -35,18 +35,57 @@ function iniciarIntervencion() {
     checkActiva();
 }
 
+
+
+// function checkActiva() {
+//     if(intervencion) {
+//         document.getElementById('setup-intervencion').style.display='none';
+//         document.getElementById('display-intervencion').style.display='block';
+        
+//         // MOSTRAR EL BOTÓN AZUL (Pero no el formulario)
+//         document.getElementById('btn-abrir-container').style.display='block';
+        
+//         document.getElementById('txt-int-nom').innerText = intervencion.nombre.toUpperCase();
+//         if(intervencion.direccion) document.getElementById('txt-int-dir').innerText = intervencion.direccion.toUpperCase();
+        
+//         render();
+//     } else {
+//         document.getElementById('setup-intervencion').style.display='block';
+//         document.getElementById('display-intervencion').style.display='none';
+//         document.getElementById('btn-abrir-container').style.display='none';
+//         document.getElementById('panel-control').style.display='none';
+//     }
+// }
+
 function checkActiva() {
     if(intervencion) {
         document.getElementById('setup-intervencion').style.display='none';
-        document.getElementById('panel-control').style.display='block';
         document.getElementById('display-intervencion').style.display='block';
+        
+        // --- ESTO ES LO QUE TIENES QUE AÑADIR ---
+        if(document.getElementById('contenedor-historial-btn')) {
+            document.getElementById('contenedor-historial-btn').style.display = 'none';
+        }
+        // ----------------------------------------
+
+        document.getElementById('btn-abrir-container').style.display='block';
+        
         document.getElementById('txt-int-nom').innerText = intervencion.nombre.toUpperCase();
-        document.getElementById('txt-int-dir').innerText = intervencion.direccion.toUpperCase();
+        if(intervencion.direccion) document.getElementById('txt-int-dir').innerText = intervencion.direccion.toUpperCase();
+        
         render();
     } else {
         document.getElementById('setup-intervencion').style.display='block';
-        document.getElementById('panel-control').style.display='none';
         document.getElementById('display-intervencion').style.display='none';
+        
+        // --- Y ESTO TAMBIÉN ---
+        if(document.getElementById('contenedor-historial-btn')) {
+            document.getElementById('contenedor-historial-btn').style.display = 'block';
+        }
+        // ----------------------
+
+        document.getElementById('btn-abrir-container').style.display='none';
+        document.getElementById('panel-control').style.display='none';
     }
 }
 
@@ -126,59 +165,81 @@ function addEquipo() {
         tramos: [] 
     });
 
-    sync(); 
+ sync(); 
     render();
-    ["nom","bar","np1","np2","np3","sit","obj"].forEach(id => document.getElementById(id).value="");
+    
+    // Ocultar formulario y mostrar botón azul de nuevo
+    document.getElementById('panel-control').style.display = 'none';
+    document.getElementById('btn-abrir-container').style.display = 'block';
+
+    // Limpiar casillas
+    ["nom","bar","np1","np2","np3","sit","obj"].forEach(id => {
+        let el = document.getElementById(id);
+        if(el) el.value = "";
+    });
 }
 
+
 function render() {
-    if(!intervencion) return;
+    if (!intervencion) return;
     let hZ = ""; let hF = ""; let hJump = ""; let ah = Date.now();
     let cS = false; let cV = false;
 
     eqs.forEach((e, i) => {
-        let tAct = e.activo ? (ah - e.tI) : 0; 
+        let tAct = e.activo ? (ah - e.tI) : 0;
         let minT = Math.floor(tAct / 60000);
-        let sU = Math.floor((ah - e.tU)/1000); 
+        let sU = Math.floor((ah - e.tU) / 1000);
         let preA = e.alerta;
 
-        // Lógica de alarmas original
-        let alertaMinutos = [5,10,15,20].includes(minT) && sU > 55;
+        // --- 1. LÓGICA DE ALARMAS Y MENSAJES PERSONALIZADOS ---
+        let alertaMinutos = [5, 10, 15, 20].includes(minT) && sU > 55;
         let alertaReserva = e.pA <= 50;
         let avisoRegreso = (e.pA <= e.pSegReg) && !e.informadoRegreso;
+        
         e.alerta = e.activo && (alertaMinutos || alertaReserva || avisoRegreso);
 
-        if (e.alerta) { 
-            cV = true; 
-            if (!e.silenciado) cS = true; 
-            if (!preA) { e.silenciado = false; } 
+        let msjAlerta = "";
+        if (alertaReserva) {
+            msjAlerta = "⚠️ PRÓXIMIDAD A RESERVA";
+        } else if (avisoRegreso) {
+            msjAlerta = "⚠️ PRESIÓN DE SEGURIDAD ALCANZADA - INFORME A EQUIPO";
+        } else if (alertaMinutos) {
+            msjAlerta = `⚠️ CONTROL NECESARIO ${minT} MINUTOS`;
         }
 
-        // --- LÓGICA DE CÍRCULO Y COLORES SOLICITADA ---
-        let porcentaje = (e.pA / 300) * 100; // 300 bar = 100%
+        if (e.alerta) {
+            cV = true;
+            if (!e.silenciado) cS = true;
+            if (!preA) { e.silenciado = false; }
+        }
+
+        // --- 2. LÓGICA DE CÍRCULO DINÁMICO (300 bar = 100%) ---
+        let porcentaje = (e.pA / 300) * 100;
         if (porcentaje > 100) porcentaje = 100;
         if (porcentaje < 0) porcentaje = 0;
 
-        let colorDinamico = "#d32f2f"; // Rojo por defecto (<50 bar)
-        if (e.pA > 200) {
-            colorDinamico = "#2ecc71"; // Verde (>200 bar)
-        } else if (e.pA > 100) {
-            colorDinamico = "#e67e22"; // Naranja (100-200 bar)
-        } else if (e.pA > 50) {
-            colorDinamico = "#f1c40f"; // Amarillo (50-100 bar)
-        }
+        let colD = "#d32f2f"; // Rojo (<50 bar)
+        if (e.pA > 200) colD = "#2ecc71"; // Verde (>200 bar)
+        else if (e.pA > 100) colD = "#e67e22"; // Naranja (100-200 bar)
+        else if (e.pA > 50) colD = "#f1c40f"; // Amarillo (50-100 bar)
 
-        let estiloCarga = `background: conic-gradient(${colorDinamico} ${porcentaje}%, #eeeeee 0%);`;
+        // El color #d1d1d1 es el gris del borde que se ve al "vaciarse"
+        let estiloC = `background: conic-gradient(${colD} ${porcentaje}%, #d1d1d1 0%);`;
 
-        if (e.activo) hJump += `<div class="btn-jump" onclick="toggleDetalles(${i})">${e.n} ${e.alerta?'⚠️':''}</div>`;
+        if (e.activo) hJump += `<div class="btn-jump" onclick="toggleDetalles(${i})">${e.n} ${e.alerta ? '⚠️' : ''}</div>`;
 
-        // Solo se añade 'mostrar' si coincide con la tarjeta pulsada
         let claseM = (tarjetaAbierta === i) ? 'mostrar' : '';
 
+        // --- 3. VARIABLE DEL BOTÓN SILENCIAR (SÍMBOLO 🔇) ---
+        let botonSilenciar = "";
+        if (e.activo && e.alerta) {
+            botonSilenciar = `<button class="btn" style="flex:1; min-width:60px; background:#5d6d7e; color:white; font-size:1.2rem;" onclick="event.stopPropagation(); eqs[${i}].silenciado=true; render();">🔇</button>`;
+        }
+
         let cardHtml = `
-            <div class="card-equipo" onclick="toggleDetalles(${i})" style="border-left-color: ${colorDinamico}">
+            <div class="card-equipo" onclick="toggleDetalles(${i})" style="border-left-color: ${colD}">
                 <div class="card-header-resumen">
-                    <div class="circulo-presion" style="${estiloCarga}">
+                    <div class="circulo-presion" style="${estiloC}">
                         <span style="font-size: 1.3rem;">${Math.round(e.pA)}</span>
                         <span style="font-size: 0.6rem; color: #666;">BAR</span>
                     </div>
@@ -186,7 +247,7 @@ function render() {
                         <div style="font-weight: bold; font-size: 1.1rem; color: #333;">${e.n}</div>
                         <div style="color: #666; font-size: 0.85rem;">📍 ${e.sit.toUpperCase()}</div>
                         <div style="font-size: 0.85rem; margin-top: 4px;">
-                            Prev. Salida: <b style="color:red">${e.hS55}</b> | Seg: <b>${Math.round(e.pSegReg)} bar</b>
+                            Salida: <b style="color:red">${e.hS55}</b> | Seg: <b>${Math.round(e.pSegReg)} bar</b>
                         </div>
                     </div>
                     <div style="text-align: right;">
@@ -194,58 +255,109 @@ function render() {
                         <div style="font-weight: bold; font-size: 1.1rem; font-family: monospace;">${formatTimeMS(tAct)}</div>
                     </div>
                 </div>
+                
                 <div id="detalles-${i}" class="detalles-expandidos ${claseM}">
-                    ${e.alerta ? `<div style="background:#ffebee; color:#c62828; padding:8px; border-radius:5px; margin-bottom:10px; font-size:0.8rem; font-weight:bold; text-align:center;">⚠️ REVISIÓN REQUERIDA</div>` : ''}
+                    ${e.alerta ? `<div style="background:#ffebee; color:#c62828; padding:8px; border-radius:5px; margin-bottom:10px; font-size:0.8rem; font-weight:bold; text-align:center;">${msjAlerta}</div>` : ''}
+                    
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem; color: #444;">
                         <div><b>Entrada:</b> ${e.hE} (${Math.round(e.pE)} bar)</div>
                         <div><b>Consumo:</b> ${Math.round(e.rMed)} l/min</div>
                         <div><b>Última:</b> ${e.hUltActualizacion}</div>
                         <div><b>Media:</b> ${e.hSMed}</div>
-                        <div style="grid-column: span 2;"><b>Personal:</b> ${e.prof.filter(p=>p!=="-").join(" | ")}</div>
+                        <div style="grid-column: span 2;"><b>Personal:</b> ${e.prof.filter(p => p !== "-").join(" | ")}</div>
                     </div>
-                    <div style="display: flex; gap: 10px; margin-top: 15px;">
-                        ${e.activo ? `
-                            <button class="btn btn-orange" style="flex:1" onclick="event.stopPropagation(); showModal(${i})">ACTUALIZAR</button>
-                            ${e.alerta ? `<button class="btn btn-silence" style="flex:1" onclick="event.stopPropagation(); eqs[${i}].silenciado=true; render();">SILENCIAR</button>` : ''}
-                            <button class="btn btn-dark" style="flex:1" onclick="event.stopPropagation(); setEstado(${i}, false)">FIN EQUIPO</button>
-                        ` : `
-                            <button class="btn btn-blue" style="flex:1; background:#28a745" onclick="event.stopPropagation(); reactivarEquipo(${i})">RE-ACTIVAR</button>
-                        `}
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px;">
+                        ${e.activo ? 
+                            `<button class="btn btn-orange" style="flex:2; min-width:80px;" onclick="event.stopPropagation(); showModal(${i})">ACTUALIZAR</button>
+                             ${botonSilenciar}
+                             <button class="btn btn-dark" style="flex:2; min-width:80px;" onclick="event.stopPropagation(); setEstado(${i}, false)">FIN EQUIPO</button>` 
+                            : 
+                            `<button class="btn btn-blue" style="flex:1; background:#28a745" onclick="event.stopPropagation(); reactivarEquipo(${i})">RE-ACTIVAR</button>`
+                        }
                     </div>
                 </div>
             </div>`;
-        if(e.activo) hZ += cardHtml; else hF += cardHtml;
+
+        if (e.activo) hZ += cardHtml; else hF += cardHtml;
     });
 
-    document.getElementById('quick-access').innerHTML = hJump;
     document.getElementById('L_ZONA').innerHTML = hZ;
-    document.getElementById('L_FUERA').innerHTML = hF != "" ? `<div class="separador" style="background:#28a745; color:white; margin-top:30px; padding:10px; border-radius:8px; text-align:center;">EQUIPOS FUERA DE ZONA</div>${hF}` : "";
+    document.getElementById('L_FUERA').innerHTML = hF !== "" ? `<div class="separador" style="background:#28a745; color:white; margin-top:30px; padding:10px; border-radius:8px; text-align:center;">EQUIPOS FUERA DE ZONA</div>${hF}` : "";
 
     let tB = document.getElementById('timer-box');
-    if (cV) { tB.className = 'global-alerta'; tB.innerText = '¡CONTROL PENDIENTE!'; if (cS && ah % 2000 < 1000) playAlertSound(); } else { tB.className = ''; tB.innerText = ''; }
+    if (cV) {
+        tB.className = 'global-alerta';
+        tB.innerText = '¡CONTROL PENDIENTE!';
+        if (cS && ah % 2000 < 1000) playAlertSound();
+    } else {
+        tB.className = '';
+        tB.innerText = '';
+    }
 
     let zonaBoton = document.getElementById('contenedor-fijo-finalizar');
-    if (!zonaBoton) { zonaBoton = document.createElement('div'); zonaBoton.id = 'contenedor-fijo-finalizar'; document.body.appendChild(zonaBoton); }
+    if (!zonaBoton) {
+        zonaBoton = document.createElement('div');
+        zonaBoton.id = 'contenedor-fijo-finalizar';
+        document.body.appendChild(zonaBoton);
+    }
     if (eqs && eqs.length > 0) {
         zonaBoton.innerHTML = `<div style="margin: 40px 15px 30px 15px; text-align: center;"><button class="btn btn-reset" onclick="finalizarTodo()" style="background-color: #d32f2f !important; width: 100%; height: 65px; font-weight: bold; font-size: 1.2rem; color: white; border: 3px solid #ffffff; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); cursor: pointer; display: block;">FINALIZAR INTERVENCIÓN</button></div>`;
-    } else { zonaBoton.innerHTML = ""; }
+    } else {
+        zonaBoton.innerHTML = "";
+    }
 }
 
 
+// --- FUNCIÓN PARA FINALIZAR EQUIPO (SACAR DE ZONA) ---
+function setEstado(i, activo) { 
+    if (!activo) {
+        let ahora = Date.now();
+        
+        // Guardamos la hora de salida real
+        eqs[i].hSalida = formatHora(ahora); 
+        
+        // Calculamos el tiempo total trabajado
+        eqs[i].tAcumuladoPrevio += (ahora - eqs[i].tI);
+        
+        // Lo marcamos como no activo
+        eqs[i].activo = false;
+        
+        // Guardamos este tramo en el historial interno del equipo
+        if(!eqs[i].tramos) eqs[i].tramos = [];
+        eqs[i].tramos.push(JSON.parse(JSON.stringify(eqs[i])));
+        
+        // IMPORTANTE: Cerramos la tarjeta al finalizar para que no estorbe
+        tarjetaAbierta = -1;
+    }
+    sync(); // Guardamos en memoria
+    render(); // Dibujamos los cambios
+}
+
+
+// --- FUNCIÓN PARA REACTIVAR EQUIPO (VOLVER A ENTRAR) ---
 function reactivarEquipo(i) {
-    let b = prompt(`Bares Entrada:`, Math.round(eqs[i].pA));
-    if(b) {
+    let b = prompt("Bares de entrada para reactivar el equipo:", Math.round(eqs[i].pA));
+    
+    if (b !== null && b !== "") {
         let ah = Date.now();
-        eqs[i].pE = eqs[i].pA = parseInt(b);
+        
+        // Actualizamos presiones y tiempos
+        eqs[i].pE = parseInt(b);
+        eqs[i].pA = parseInt(b);
         eqs[i].tI = ah; 
         eqs[i].tU = ah; 
         eqs[i].hE = formatHora(ah);
-        eqs[i].hUltActualizacion = formatHora(ah); // Reiniciamos hora de actualización
-        eqs[i].hSalida = "--:--";
-        eqs[i].activo = true; 
-        eqs[i].informadoRegreso = false;
+        eqs[i].hUltActualizacion = formatHora(ah);
         
-        // NO ponemos tAcumuladoPrevio a cero para que el tiempo total no se borre
+        // Reset de estados
+        eqs[i].activo = true;
+        eqs[i].informadoRegreso = false;
+        eqs[i].silenciado = false;
+        eqs[i].hSalida = "--:--";
+        
+        // Mantenemos la tarjeta abierta para confirmar que ha entrado
+        tarjetaAbierta = i;
         
         sync(); 
         render();
@@ -412,3 +524,14 @@ window.onload = checkActiva;
 window.addEventListener('click', initAudio, { once: true });
 window.addEventListener('touchstart', initAudio, { once: true });
 
+function toggleFormulario() {
+    const panel = document.getElementById('panel-control');
+    const btn = document.getElementById('btn-abrir-container');
+    if (panel.style.display === "none" || panel.style.display === "") {
+        panel.style.display = "block";
+        btn.style.display = "none";
+    } else {
+        panel.style.display = "none";
+        btn.style.display = "block";
+    }
+}

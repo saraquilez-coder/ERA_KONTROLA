@@ -21,16 +21,24 @@
 <body>
 
     <div class="header">
-        <h1>KONTROL_ERA</h1>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 5px;">
+            <img src="logo.png" alt="Logo" style="height: 45px; width: auto;">
+            <h1 style="margin: 0;">KONTROL_ERA</h1>
+        </div>
+
         <div id="display-intervencion" style="display:none;" class="info-header">
             <b id="txt-int-nom"></b><br>
             <span id="txt-int-dir" style="font-size:0.8rem; opacity:0.8;"></span>
         </div>
     </div>
 
-    <div style="text-align:center; margin-bottom: 10px;">
+    <!-- <div style="text-align:center; margin-bottom: 10px;">
         <button class="btn btn-dark" style="display:inline-block; width:auto; padding: 10px;" onclick="toggleHistorial()">VER HISTORIAL</button>
-    </div>
+    </div> -->
+
+    <div id="contenedor-historial-btn" style="text-align:center; margin-bottom: 10px;">
+    <button class="btn btn-dark" style="display:inline-block; width:auto; padding: 10px;" onclick="toggleHistorial()">VER HISTORIAL</button>
+</div>
 
     <div id="seccion-historial" style="display:none; background:#eee; padding: 10px; margin-bottom: 20px; border-radius: 8px;">
         <h3 style="color:black; margin-top:0;">Historial Reciente</h3>
@@ -48,8 +56,14 @@
             <button class="btn btn-blue" onclick="iniciarIntervencion()">INICIAR INTERVENCIÓN</button>
         </div>
 
-        <div id="panel-control" class="card" style="display:none;">
-            <h2>AÑADIR BINOMIO</h2>
+        <div id="btn-abrir-container" style="display:none; margin-bottom: 15px;">
+            <button class="btn btn-blue" onclick="toggleFormulario()" style="width: 100%; background-color: #3498db; padding: 15px; font-weight: bold; border-radius: 10px; border: none; cursor: pointer;">
+                + AÑADIR NUEVO BINOMIO
+            </button>
+        </div>
+
+        <div id="panel-control" class="card" style="display:none; margin-top: 0;">
+            <h2 style="margin-top:0;">AÑADIR BINOMIO</h2>
             <input type="text" id="nom" placeholder="IDENTIFICADOR (Ej: B1 / TANQUE)">
             <input type="number" id="bar" placeholder="PRESIÓN ENTRADA (BAR)">
             
@@ -61,14 +75,14 @@
 
             <input type="text" id="sit" placeholder="LOCALIZACIÓN">
             <input type="text" id="obj" placeholder="OBJETIVO">
-            <button class="btn btn-blue" onclick="addEquipo()">AÑADIR EQUIPO</button>
+            
+            <button class="btn btn-blue" onclick="addEquipo()" style="background-color: #2ecc71;">CONFIRMAR ENTRADA</button>
+            <button class="btn btn-dark" onclick="toggleFormulario()" style="margin-top:10px; background-color: #666; width: 100%; border: none; padding: 15px; border-radius: 10px; cursor: pointer;">CANCELAR</button>
         </div>
 
         <div id="quick-access"></div>
         <div id="L_ZONA"></div>
         <div id="L_FUERA"></div>
-
-        <!-- <button class="btn btn-reset" onclick="finalizarTodo()">FINALIZAR INTERVENCIÓN</button> -->
     </div>
 
     <div id="modal">
