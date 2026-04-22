@@ -132,6 +132,7 @@ function formatTimeMS(ms) { return Math.floor(ms/60000) + "m " + Math.floor((ms%
 
 function addEquipo() {
     initAudio();
+    // CORREGIDO: El ID debe ser 'nom' tal cual está en tu index.html
     let n = document.getElementById('nom').value; 
     let b = document.getElementById('bar').value;
     if(!n || !b) return;
@@ -145,18 +146,28 @@ function addEquipo() {
     let ah = Date.now(); 
     let barNum = parseInt(b);
 
+    // CÁLCULO DE MINUTOS DE AUTONOMÍA (55 L/MIN) DESDE EL INICIO
+    let minutos55 = Math.round(((barNum - 50) * 6) / 55);
+
     eqs.push({ 
-        n: n, pE: barNum, pA: barNum, prof: p, 
+        n: n, 
+        pE: barNum, 
+        pA: barNum, 
+        prof: p, 
         sit: document.getElementById('sit').value || "---", 
         obj: document.getElementById('obj').value || "---",
         hE: formatHora(ah), 
-        hS55: formatHora(ah + (((barNum-50)*6/55)*60000)), 
+        
+        // GUARDAMOS EL DATO DE MINUTOS PARA MOSTRARLO EN LA TARJETA
+        aut55: minutos55,
+        hS55: formatHora(ah + (minutos55 * 60000)), 
+        
         hSMed: "--:--", 
         hSalida: "--:--",
         pSegReg: Math.round((barNum / 2) + 25),
         tI: ah, 
         tU: ah, 
-        hUltActualizacion: formatHora(ah), // <--- ESTA LÍNEA ARREGLA EL UNDEFINED
+        hUltActualizacion: formatHora(ah),
         tAcumuladoPrevio: 0, 
         rMed: 0,  
         autMed: 0, 
@@ -167,7 +178,7 @@ function addEquipo() {
         tramos: [] 
     });
 
- sync(); 
+    sync(); 
     render();
     
     // Ocultar formulario y mostrar botón azul de nuevo
@@ -291,8 +302,10 @@ function render() {
                         <div><b>Hora Entrada:</b> ${e.hE} (${Math.round(e.pE)} bar)</div>
                         <div><b>Consumo medio:</b> ${Math.round(e.rMed)} l/min</div>
                         <div><b>Última Actualización:</b> ${e.hUltActualizacion}</div>
+                        <div><b>Autonomía (consumo medio):</b> ${e.autMed ? Math.round(e.autMed) + ' min' : '---'} </div>
                         <div style="grid-column: span 2;"><b> ⛑︎ Personal:</b> ${e.prof.filter(p => p !== "-").join(" | ")}</div>
                         <div><b>Tiempo Trabajo Acumulado:</b> ${formatTimeMS(tiempoTotalTrabajo)}</div>
+                        <div><b>Autonomía (55 l/min):</b> ${e.aut55 > 0 ? Math.round(e.aut55) + ' min' : '0 min'}</div>
                     </div>
 
                     <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px;">
@@ -336,34 +349,6 @@ function render() {
 }
 
 
-// --- FUNCIÓN PARA REACTIVAR EQUIPO (VOLVER A ENTRAR) ---
-function reactivarEquipo(i) {
-    let b = prompt("Bares de entrada para reactivar el equipo:", Math.round(eqs[i].pA));
-    
-    if (b !== null && b !== "") {
-        let ah = Date.now();
-        
-        // Actualizamos presiones y tiempos
-        eqs[i].pE = parseInt(b);
-        eqs[i].pA = parseInt(b);
-        eqs[i].tI = ah; 
-        eqs[i].tU = ah; 
-        eqs[i].hE = formatHora(ah);
-        eqs[i].hUltActualizacion = formatHora(ah);
-        
-        // Reset de estados
-        eqs[i].activo = true;
-        eqs[i].informadoRegreso = false;
-        eqs[i].silenciado = false;
-        eqs[i].hSalida = "--:--";
-        
-        // Mantenemos la tarjeta abierta para confirmar que ha entrado
-        tarjetaAbierta = i;
-        
-        sync(); 
-        render();
-    }
-}
 
 function showModal(i) { 
     idS = i; 
@@ -393,44 +378,65 @@ function saveData() {
     let b = document.getElementById('nB').value;
     if (b !== "" && idS !== -1) {
         let ah = Date.now(); 
-        let v = parseInt(b);
+        let v = parseInt(b); // Presión introducida ahora
         let e = eqs[idS];
 
-        // 1. Actualizamos la hora de actualización SIEMPRE
+        // --- A. LÓGICA DE RE-ENTRADA ---
+        if (!e.activo) {
+            e.tI = ah;
+            e.hE = formatHora(ah);
+            e.pE = v; // La nueva presión de entrada para los cálculos
+            e.activo = true;
+            e.informadoRegreso = false;
+            e.silenciado = false;
+            e.alerta = false;
+            e.rMed = 0; 
+        }
+
         e.hUltActualizacion = formatHora(ah); 
         e.tU = ah; 
 
-        // 2. Cálculos de consumo (Solo si cambia la presión)
-        if (v !== e.pA) {
-            let tTotal = (ah - e.tI) / 60000;
-            if (tTotal > 0.1) {
-                e.rMed = ((e.pE - v) * 6) / tTotal;
-                if (e.rMed > 0) {
-                    e.autMed = ((v - 50) * 6) / e.rMed;
-                    e.hSMed = formatHora(ah + (e.autMed * 60000));
-                }
-            }
-            // HE ELIMINADO LA LÍNEA DE e.rInst QUE ESTABA AQUÍ
-            e.pA = v;
-        }
-
-        // 3. ACTUALIZAR ESTADO DE ALARMA
-        e.informadoRegreso = document.getElementById('checkInformado').checked;
+       // --- B. ACTUALIZAR PREVISIÓN SALIDA 55 L/MIN (SIEMPRE) ---
+        // Fórmula: ((Presión Actual - 50 reserva) * 6 litros) / 55 l/min
+        let litrosDisponibles = Math.max(0, (v - 50) * 6);
+        let minutos55 = litrosDisponibles / 55;
         
-        if (e.informadoRegreso) {
-            e.alerta = false;   
-            e.silenciado = true; 
-        }
+        e.aut55 = minutos55; // <--- AÑADIMOS ESTA LÍNEA PARA GUARDAR EL DATO
+        e.hS55 = formatHora(ah + (minutos55 * 60000));
 
-        // 4. Guardar los nombres de los intervinientes (NP1, NP2, NP3)
+        // --- C. CÁLCULO DE CONSUMO MEDIO Y AUTONOMÍA ---
+        let tTotalMinutos = (ah - e.tI) / 60000;
+        
+        // Solo calculamos si han pasado al menos 0.1 min para evitar errores
+        if (tTotalMinutos > 0.1) {
+            let litrosConsumidos = (e.pE - v) * 6;
+            let consumoCalculado = litrosConsumidos / tTotalMinutos;
+            
+            // Si el consumo es positivo (han gastado aire)
+            if (consumoCalculado > 0) {
+                e.rMed = consumoCalculado;
+                e.autMed = litrosDisponibles / e.rMed;
+                e.hSMed = formatHora(ah + (e.autMed * 60000));
+            } else {
+                // Si no hay caída de presión, el consumo medio tiende a 0
+                // Pero no podemos calcular autonomía infinita
+                e.rMed = 0;
+                e.autMed = 0;
+                e.hSMed = "---";
+            }
+        }
+        
+        // Actualizamos la presión actual en memoria después de los cálculos
+        e.pA = v;
+
+        // --- D. GUARDAR RESTO DE DATOS ---
+        e.sit = document.getElementById('nSit').value; 
+        e.obj = document.getElementById('nObj').value;
         e.prof = [
             document.getElementById('nnp1').value || "-",
             document.getElementById('nnp2').value || "-",
             document.getElementById('nnp3').value || "-"
         ];
-
-        e.sit = document.getElementById('nSit').value; 
-        e.obj = document.getElementById('nObj').value;
         
         hideModal(); 
         sync(); 
@@ -562,21 +568,20 @@ function setEstado(i, activo) {
     render(); 
 }
 
-// --- FUNCIÓN PARA REACTIVAR UN EQUIPO QUE ESTABA FUERA ---
 function reactivarEquipo(i) {
-    let ahora = Date.now();
+    idS = i; // Esto es vital para que saveData sepa qué equipo actualizar
+    let e = eqs[i];
     
-    // Reseteamos sus tiempos de entrada a este mismo momento
-    eqs[i].tI = ahora;
-    eqs[i].tU = ahora;
-    eqs[i].hE = formatHora(ahora);
+    // Configuramos el modal
+    document.getElementById('mTit').innerText = "RE-ENTRADA: " + e.n;
+    document.getElementById('nB').value = ""; // Forzamos a que metas la presión nueva
+    document.getElementById('nSit').value = e.sit;
+    document.getElementById('nObj').value = e.obj;
+    document.getElementById('nnp1').value = e.prof[0] === "-" ? "" : e.prof[0];
+    document.getElementById('nnp2').value = e.prof[1] === "-" ? "" : e.prof[1];
+    document.getElementById('nnp3').value = e.prof[2] === "-" ? "" : e.prof[2];
     
-    // Lo volvemos a poner activo y limpiamos alarmas previas
-    eqs[i].activo = true;
-    eqs[i].alerta = false;
-    eqs[i].silenciado = false;
-    eqs[i].informadoRegreso = false;
-    
-    sync();
-    render();
+    // Abrimos el modal
+    document.getElementById('modal').style.display = 'flex';
 }
+
