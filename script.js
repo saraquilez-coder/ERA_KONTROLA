@@ -36,27 +36,6 @@ function iniciarIntervencion() {
 }
 
 
-
-// function checkActiva() {
-//     if(intervencion) {
-//         document.getElementById('setup-intervencion').style.display='none';
-//         document.getElementById('display-intervencion').style.display='block';
-        
-//         // MOSTRAR EL BOTÓN AZUL (Pero no el formulario)
-//         document.getElementById('btn-abrir-container').style.display='block';
-        
-//         document.getElementById('txt-int-nom').innerText = intervencion.nombre.toUpperCase();
-//         if(intervencion.direccion) document.getElementById('txt-int-dir').innerText = intervencion.direccion.toUpperCase();
-        
-//         render();
-//     } else {
-//         document.getElementById('setup-intervencion').style.display='block';
-//         document.getElementById('display-intervencion').style.display='none';
-//         document.getElementById('btn-abrir-container').style.display='none';
-//         document.getElementById('panel-control').style.display='none';
-//     }
-// }
-
 function checkActiva() {
     if(intervencion) {
         document.getElementById('setup-intervencion').style.display='none';
@@ -91,22 +70,45 @@ function checkActiva() {
 
 function finalizarTodo() {
     if(confirm("¿FINALIZAR INTERVENCIÓN TOTAL? Se guardará en el historial y se reseteará la App.")) {
-        let historial = JSON.parse(localStorage.getItem('bvg_historial')) || [];
-        
-        // Aquí es donde ocurre la magia: guardamos TODO el array 'eqs' de golpe
-        historial.push({
-            id: Date.now(),
-            info: JSON.parse(JSON.stringify(intervencion)),
-            equipos: JSON.parse(JSON.stringify(eqs)), 
-            fecha: new Date().toLocaleString()
-        });
-        localStorage.setItem('bvg_historial', JSON.stringify(historial));
+        try {
+            let ahora = Date.now();
+            
+            // 1. BARRIDO SEGURO: Cerramos equipos sin usar setEstado ni render()
+            eqs.forEach(e => {
+                if (e.activo) {
+                    e.activo = false;
+                    e.hSalida = formatHora(ahora);
+                    e.tAcumuladoPrevio += (ahora - e.tI);
+                    if (!e.tramos) e.tramos = [];
+                    e.tramos.push(JSON.parse(JSON.stringify(e)));
+                }
+            });
 
-        // Limpieza y reseteo
-        localStorage.removeItem('bvg_int_data');
-        localStorage.removeItem('eq_bvg_timer_fix');
-        intervencion = null; eqs = [];
-        window.location.href = window.location.origin + window.location.pathname;
+            // 2. GUARDADO EN HISTORIAL
+            let historial = JSON.parse(localStorage.getItem('bvg_historial')) || [];
+            historial.push({
+                id: ahora,
+                info: intervencion ? JSON.parse(JSON.stringify(intervencion)) : { nombre: "SIN NOMBRE", direccion: "" },
+                equipos: JSON.parse(JSON.stringify(eqs)), 
+                fecha: new Date().toLocaleString()
+            });
+            localStorage.setItem('bvg_historial', JSON.stringify(historial));
+
+            // 3. LIMPIEZA
+            localStorage.removeItem('bvg_int_data');
+            localStorage.removeItem('eq_bvg_timer_fix');
+            intervencion = null; 
+            eqs = [];
+
+            // 4. RECARGA LIMPIA DE LA PÁGINA
+            location.reload();
+
+        } catch (error) {
+            // Si algo falla, la app no se quedará congelada en silencio. 
+            // Te mostrará una alerta con el motivo exacto del error.
+            alert("Error al finalizar: " + error.message);
+            console.error("Fallo completo:", error);
+        }
     }
 }
 
@@ -187,11 +189,12 @@ function render() {
 
     eqs.forEach((e, i) => {
         let tAct = e.activo ? (ah - e.tI) : 0;
+        let tiempoTotalTrabajo = e.tAcumuladoPrevio + tAct;
         let minT = Math.floor(tAct / 60000);
         let sU = Math.floor((ah - e.tU) / 1000);
         let preA = e.alerta;
 
-        // --- 1. LÓGICA DE ALARMAS Y MENSAJES PERSONALIZADOS ---
+        // --- 1. LÓGICA DE ALARMAS ---
         let alertaMinutos = [5, 10, 15, 20].includes(minT) && sU > 55;
         let alertaReserva = e.pA <= 50;
         let avisoRegreso = (e.pA <= e.pSegReg) && !e.informadoRegreso;
@@ -200,7 +203,7 @@ function render() {
 
         let msjAlerta = "";
         if (alertaReserva) {
-            msjAlerta = "⚠️ PRÓXIMIDAD A RESERVA";
+            msjAlerta = "⚠️ PROXIMIDAD A RESERVA";
         } else if (avisoRegreso) {
             msjAlerta = "⚠️ PRESIÓN DE SEGURIDAD ALCANZADA - INFORME A EQUIPO";
         } else if (alertaMinutos) {
@@ -213,31 +216,42 @@ function render() {
             if (!preA) { e.silenciado = false; }
         }
 
-        // --- 2. LÓGICA DE CÍRCULO DINÁMICO (300 bar = 100%) ---
+        // --- LÓGICA DE PARPADEO DEL FONDO DE LA TARJETA ---
+        let claseParpadeo = "";
+        if (e.alerta && !e.silenciado) { 
+            // Si hay una alerta activa y no la hemos silenciado
+            if (alertaReserva || avisoRegreso) {
+                claseParpadeo = "fondo-alerta-roja";
+            } else if (alertaMinutos) {
+                claseParpadeo = "fondo-alerta-amarilla";
+            }
+        }
+
+        // --- 2. LÓGICA DE CÍRCULO DINÁMICO ---
+
+        // --- 2. LÓGICA DE CÍRCULO DINÁMICO ---
         let porcentaje = (e.pA / 300) * 100;
         if (porcentaje > 100) porcentaje = 100;
         if (porcentaje < 0) porcentaje = 0;
 
-        let colD = "#d32f2f"; // Rojo (<50 bar)
-        if (e.pA > 200) colD = "#2ecc71"; // Verde (>200 bar)
-        else if (e.pA > 100) colD = "#e67e22"; // Naranja (100-200 bar)
-        else if (e.pA > 50) colD = "#f1c40f"; // Amarillo (50-100 bar)
+        let colD = "#d32f2f"; 
+        if (e.pA > 200) colD = "#2ecc71"; 
+        else if (e.pA > 100) colD = "#e67e22"; 
+        else if (e.pA > 50) colD = "#f1c40f"; 
 
-        // El color #d1d1d1 es el gris del borde que se ve al "vaciarse"
         let estiloC = `background: conic-gradient(${colD} ${porcentaje}%, #d1d1d1 0%);`;
 
         if (e.activo) hJump += `<div class="btn-jump" onclick="toggleDetalles(${i})">${e.n} ${e.alerta ? '⚠️' : ''}</div>`;
 
         let claseM = (tarjetaAbierta === i) ? 'mostrar' : '';
 
-        // --- 3. VARIABLE DEL BOTÓN SILENCIAR (SÍMBOLO 🔇) ---
         let botonSilenciar = "";
         if (e.activo && e.alerta) {
             botonSilenciar = `<button class="btn" style="flex:1; min-width:60px; background:#5d6d7e; color:white; font-size:1.2rem;" onclick="event.stopPropagation(); eqs[${i}].silenciado=true; render();">🔇</button>`;
         }
 
         let cardHtml = `
-            <div class="card-equipo" onclick="toggleDetalles(${i})" style="border-left-color: ${colD}">
+           <div class="card-equipo ${claseParpadeo}" onclick="toggleDetalles(${i})" style="border-left-color: ${colD}">
                 <div class="card-header-resumen">
                     <div class="circulo-presion" style="${estiloC}">
                         <span style="font-size: 1.3rem;">${Math.round(e.pA)}</span>
@@ -245,13 +259,18 @@ function render() {
                     </div>
                     <div style="flex-grow: 1;">
                         <div style="font-weight: bold; font-size: 1.1rem; color: #333;">${e.n}</div>
-                        <div style="color: #666; font-size: 0.85rem;">📍 ${e.sit.toUpperCase()}</div>
+                        <div style="color: #666; font-size: 0.85rem;font-weight: bold;"> ⚲ ${e.sit.toUpperCase()}</div>
+                        <div style="color: #666; font-size: 0.85rem; font-weight: bold;"> ◎ OBJETIVO: ${e.obj.toUpperCase()}</div>
+                        
                         <div style="font-size: 0.85rem; margin-top: 4px;">
-                            Salida: <b style="color:red">${e.hS55}</b> | Seg: <b>${Math.round(e.pSegReg)} bar</b>
+                            Previsión Salida (55L/MIN): <b style="color:red">${e.hS55}</b> | Previsión Salida (Consumo Medio): <b style="color:red">${e.hSMed}</b>
+                        </div>
+                        <div style="font-size: 0.85rem; margin-top: 4px;">
+                             Presión Seguridad Retorno: <b style="color:red">${Math.round(e.pSegReg)} bar</b>
                         </div>
                     </div>
                     <div style="text-align: right;">
-                        <div style="font-size: 0.7rem; color: #999;">TIEMPO</div>
+                        <div style="font-size: 0.7rem; color: #999;">TIEMPO ACTUAL</div>
                         <div style="font-weight: bold; font-size: 1.1rem; font-family: monospace;">${formatTimeMS(tAct)}</div>
                     </div>
                 </div>
@@ -260,11 +279,11 @@ function render() {
                     ${e.alerta ? `<div style="background:#ffebee; color:#c62828; padding:8px; border-radius:5px; margin-bottom:10px; font-size:0.8rem; font-weight:bold; text-align:center;">${msjAlerta}</div>` : ''}
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem; color: #444;">
-                        <div><b>Entrada:</b> ${e.hE} (${Math.round(e.pE)} bar)</div>
-                        <div><b>Consumo:</b> ${Math.round(e.rMed)} l/min</div>
-                        <div><b>Última:</b> ${e.hUltActualizacion}</div>
-                        <div><b>Media:</b> ${e.hSMed}</div>
-                        <div style="grid-column: span 2;"><b>Personal:</b> ${e.prof.filter(p => p !== "-").join(" | ")}</div>
+                        <div><b>Hora Entrada:</b> ${e.hE} (${Math.round(e.pE)} bar)</div>
+                        <div><b>Consumo medio:</b> ${Math.round(e.rMed)} l/min</div>
+                        <div><b>Última Actualización:</b> ${e.hUltActualizacion}</div>
+                        <div style="grid-column: span 2;"><b> ⛑︎ Personal:</b> ${e.prof.filter(p => p !== "-").join(" | ")}</div>
+                        <div><b>Tiempo Trabajo Acumulado:</b> ${formatTimeMS(tiempoTotalTrabajo)}</div>
                     </div>
 
                     <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px;">
@@ -285,6 +304,7 @@ function render() {
     document.getElementById('L_ZONA').innerHTML = hZ;
     document.getElementById('L_FUERA').innerHTML = hF !== "" ? `<div class="separador" style="background:#28a745; color:white; margin-top:30px; padding:10px; border-radius:8px; text-align:center;">EQUIPOS FUERA DE ZONA</div>${hF}` : "";
 
+    // --- LÓGICA DE ALERTA GLOBAL ---
     let tB = document.getElementById('timer-box');
     if (cV) {
         tB.className = 'global-alerta';
@@ -295,6 +315,7 @@ function render() {
         tB.innerText = '';
     }
 
+    // --- BOTÓN FINALIZAR INTERVENCIÓN ---
     let zonaBoton = document.getElementById('contenedor-fijo-finalizar');
     if (!zonaBoton) {
         zonaBoton = document.createElement('div');
@@ -306,32 +327,6 @@ function render() {
     } else {
         zonaBoton.innerHTML = "";
     }
-}
-
-
-// --- FUNCIÓN PARA FINALIZAR EQUIPO (SACAR DE ZONA) ---
-function setEstado(i, activo) { 
-    if (!activo) {
-        let ahora = Date.now();
-        
-        // Guardamos la hora de salida real
-        eqs[i].hSalida = formatHora(ahora); 
-        
-        // Calculamos el tiempo total trabajado
-        eqs[i].tAcumuladoPrevio += (ahora - eqs[i].tI);
-        
-        // Lo marcamos como no activo
-        eqs[i].activo = false;
-        
-        // Guardamos este tramo en el historial interno del equipo
-        if(!eqs[i].tramos) eqs[i].tramos = [];
-        eqs[i].tramos.push(JSON.parse(JSON.stringify(eqs[i])));
-        
-        // IMPORTANTE: Cerramos la tarjeta al finalizar para que no estorbe
-        tarjetaAbierta = -1;
-    }
-    sync(); // Guardamos en memoria
-    render(); // Dibujamos los cambios
 }
 
 

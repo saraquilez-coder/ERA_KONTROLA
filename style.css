@@ -139,3 +139,22 @@ input { width: 100%; padding: 12px; margin: 5px 0 10px 0; border: 1px solid #ccc
     background: #5d6d7e !important;
     color: white;
 }
+
+/* ANIMACIONES DE ALERTA PARA LAS TARJETAS */
+@keyframes parpadeoRojo {
+    0%, 100% { background-color: #ffffff; }
+    50% { background-color: #ffcccc; } /* Rojo claro de advertencia */
+}
+
+@keyframes parpadeoAmarillo {
+    0%, 100% { background-color: #ffffff; }
+    50% { background-color: #fff3cd; } /* Amarillo claro de aviso */
+}
+
+.fondo-alerta-roja {
+    animation: parpadeoRojo 1.2s infinite;
+}
+
+.fondo-alerta-amarilla {
+    animation: parpadeoAmarillo 1.2s infinite;
+}
