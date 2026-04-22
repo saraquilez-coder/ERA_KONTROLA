@@ -263,8 +263,13 @@ function render() {
                         <div style="color: #666; font-size: 0.85rem; font-weight: bold;"> ◎ OBJETIVO: ${e.obj.toUpperCase()}</div>
                         
                         <div style="font-size: 0.85rem; margin-top: 4px;">
-                            Previsión Salida (55L/MIN): <b style="color:red">${e.hS55}</b> | Previsión Salida (Consumo Medio): <b style="color:red">${e.hSMed}</b>
+                            Previsión Salida (55l/min): <b style="color:red">${e.hS55}</b> 
+                        </div>  
+                            
+                        <div style="font-size: 0.85rem; margin-top: 4px;">
+                        Previsión Salida (Consumo Medio): <b style="color:red">${e.hSMed}</b>
                         </div>
+                        
                         <div style="font-size: 0.85rem; margin-top: 4px;">
                              Presión Seguridad Retorno: <b style="color:red">${Math.round(e.pSegReg)} bar</b>
                         </div>
@@ -322,11 +327,8 @@ function render() {
         zonaBoton.id = 'contenedor-fijo-finalizar';
         document.body.appendChild(zonaBoton);
     }
-    if (eqs && eqs.length > 0) {
-        zonaBoton.innerHTML = `<div style="margin: 40px 15px 30px 15px; text-align: center;"><button class="btn btn-reset" onclick="finalizarTodo()" style="background-color: #d32f2f !important; width: 100%; height: 65px; font-weight: bold; font-size: 1.2rem; color: white; border: 3px solid #ffffff; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); cursor: pointer; display: block;">FINALIZAR INTERVENCIÓN</button></div>`;
-    } else {
-        zonaBoton.innerHTML = "";
-    }
+    // NUEVO CÓDIGO: El botón sale SIEMPRE que haya una intervención activa
+    zonaBoton.innerHTML = `<div style="margin: 40px 15px 30px 15px; text-align: center;"><button class="btn btn-reset" onclick="finalizarTodo()" style="background-color: #d32f2f !important; width: 100%; height: 65px; font-weight: bold; font-size: 1.2rem; color: white; border: 3px solid #ffffff; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); cursor: pointer; display: block;">FINALIZAR INTERVENCIÓN</button></div>`;
 }
 
 
@@ -529,4 +531,48 @@ function toggleFormulario() {
         panel.style.display = "none";
         btn.style.display = "block";
     }
+}
+
+// --- FUNCIÓN PARA FINALIZAR UN EQUIPO MANUALMENTE ---
+function setEstado(i, activo) { 
+    if (!activo) {
+        let ahora = Date.now();
+        
+        // Asignamos la hora de salida
+        eqs[i].hSalida = formatHora(ahora); 
+        
+        // Sumamos el tiempo que han estado dentro al acumulado
+        eqs[i].tAcumuladoPrevio += (ahora - eqs[i].tI);
+        
+        // Marcamos el equipo como inactivo (sale a la zona verde de fuera)
+        eqs[i].activo = false;
+        
+        // Guardamos este tramo para el historial
+        if(!eqs[i].tramos) eqs[i].tramos = [];
+        eqs[i].tramos.push(JSON.parse(JSON.stringify(eqs[i])));
+        
+        // Cerramos la tarjeta desplegable
+        tarjetaAbierta = -1;
+    }
+    sync(); 
+    render(); 
+}
+
+// --- FUNCIÓN PARA REACTIVAR UN EQUIPO QUE ESTABA FUERA ---
+function reactivarEquipo(i) {
+    let ahora = Date.now();
+    
+    // Reseteamos sus tiempos de entrada a este mismo momento
+    eqs[i].tI = ahora;
+    eqs[i].tU = ahora;
+    eqs[i].hE = formatHora(ahora);
+    
+    // Lo volvemos a poner activo y limpiamos alarmas previas
+    eqs[i].activo = true;
+    eqs[i].alerta = false;
+    eqs[i].silenciado = false;
+    eqs[i].informadoRegreso = false;
+    
+    sync();
+    render();
 }
