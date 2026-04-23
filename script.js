@@ -295,13 +295,14 @@ function render() {
                         <div style="font-weight: bold; font-size: 1.1rem; color: #333;">${e.n}</div>
                         <div style="color: #666; font-size: 0.85rem;font-weight: bold;"> ⚲ ${e.sit.toUpperCase()}</div>
                         <div style="color: #666; font-size: 0.85rem; font-weight: bold;"> ◎ OBJETIVO: ${e.obj.toUpperCase()}</div>
+                        <div style="color: #666; font-size: 0.85rem; font-weight: bold;"> ⛑︎ Personal: ${e.prof.filter(p => p !== "-").join(" | ")}</div>
                         
                         <div style="font-size: 0.85rem; margin-top: 4px;">
-                            Previsión Salida (55l/min): <b style="color:red">${e.hS55}</b> 
+                            Previsión Salida (55l/min): <b style="color:red">${e.hS55}h</b> 
                         </div>  
                             
                         <div style="font-size: 0.85rem; margin-top: 4px;">
-                        Previsión Salida (Consumo Medio): <b style="color:red">${e.hSMed}</b>
+                        Previsión Salida (Consumo Medio): <b style="color:red">${e.hSMed}h</b>
                         </div>
                         
                         <div style="font-size: 0.85rem; margin-top: 4px;">
@@ -317,9 +318,8 @@ function render() {
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem; color: #444;">
                         <div><b>Hora Entrada:</b> ${e.hE} (${Math.round(e.pE)} bar)</div>
                         <div><b>Consumo medio:</b> ${Math.round(e.rMed)} l/min</div>
-                        <div><b>Última Actualización:</b> ${e.hUltActualizacion}</div>
+                        <div><b>Última Actualización Presión:</b> ${e.hUltActualizacion}h</div>
                         <div><b>Autonomía (consumo medio):</b> ${e.autMed ? Math.round(e.autMed) + ' min' : '---'} </div>
-                        <div style="grid-column: span 2;"><b> ⛑︎ Personal:</b> ${e.prof.filter(p => p !== "-").join(" | ")}</div>
                         <div><b>Tiempo Trabajo Acumulado:</b> ${formatTimeMS(tiempoTotalTrabajo)}</div>
                         <div><b>Autonomía (55 l/min):</b> ${e.aut55 > 0 ? Math.round(e.aut55) + ' min' : '0 min'}</div>
                     </div>
