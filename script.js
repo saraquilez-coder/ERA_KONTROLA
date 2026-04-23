@@ -132,7 +132,6 @@ function formatTimeMS(ms) { return Math.floor(ms/60000) + "m " + Math.floor((ms%
 
 function addEquipo() {
     initAudio();
-    // CORREGIDO: El ID debe ser 'nom' tal cual está en tu index.html
     let n = document.getElementById('nom').value; 
     let b = document.getElementById('bar').value;
     if(!n || !b) return;
@@ -149,6 +148,9 @@ function addEquipo() {
     // CÁLCULO DE MINUTOS DE AUTONOMÍA (55 L/MIN) DESDE EL INICIO
     let minutos55 = Math.round(((barNum - 50) * 6) / 55);
 
+    // Dentro de addEquipo, busca esta línea y déjala así:
+       
+
     eqs.push({ 
         n: n, 
         pE: barNum, 
@@ -164,7 +166,7 @@ function addEquipo() {
         
         hSMed: "--:--", 
         hSalida: "--:--",
-        pSegReg: Math.round((barNum / 2) + 25),
+        pSegReg: Math.round((barNum / 2) + 20),
         tI: ah, 
         tU: ah, 
         hUltActualizacion: formatHora(ah),
@@ -206,7 +208,7 @@ function render() {
         let preA = e.alerta;
 
         // --- 1. LÓGICA DE ALARMAS ---
-        let alertaMinutos = [5, 10, 15, 20].includes(minT) && sU > 55;
+        let alertaMinutos = [5, 10, 15, 20].includes(minT);
         let alertaReserva = e.pA <= 50;
         let avisoRegreso = (e.pA <= e.pSegReg) && !e.informadoRegreso;
         
@@ -237,8 +239,6 @@ function render() {
                 claseParpadeo = "fondo-alerta-amarilla";
             }
         }
-
-        // --- 2. LÓGICA DE CÍRCULO DINÁMICO ---
 
         // --- 2. LÓGICA DE CÍRCULO DINÁMICO ---
         let porcentaje = (e.pA / 300) * 100;
@@ -373,7 +373,6 @@ function showModal(i) {
 
 function hideModal() { document.getElementById('modal').style.display='none'; }
 
-
 function saveData() {
     let b = document.getElementById('nB').value;
     if (b !== "" && idS !== -1) {
@@ -381,55 +380,63 @@ function saveData() {
         let v = parseInt(b); // Presión introducida ahora
         let e = eqs[idS];
 
-        // --- A. LÓGICA DE RE-ENTRADA ---
+        // --- A. LÓGICA DE RE-ENTRADA (Solo ocurre si el equipo estaba en "FIN") ---
         if (!e.activo) {
             e.tI = ah;
             e.hE = formatHora(ah);
-            e.pE = v; // La nueva presión de entrada para los cálculos
+            e.pE = v; 
             e.activo = true;
             e.informadoRegreso = false;
             e.silenciado = false;
             e.alerta = false;
             e.rMed = 0; 
+
+            // --- ÚNICO MOMENTO DONDE SE CALCULA LA PRESIÓN DE SEGURIDAD ---
+            e.pSegReg = Math.round((v / 2) + 20);
         }
 
+        // AQUÍ YA NO HAY CÁLCULO DE pSegReg, por lo que se mantiene fijo el valor anterior
+        
         e.hUltActualizacion = formatHora(ah); 
         e.tU = ah; 
 
-       // --- B. ACTUALIZAR PREVISIÓN SALIDA 55 L/MIN (SIEMPRE) ---
-        // Fórmula: ((Presión Actual - 50 reserva) * 6 litros) / 55 l/min
+        // --- B. ACTUALIZAR PREVISIÓN SALIDA 55 L/MIN ---
         let litrosDisponibles = Math.max(0, (v - 50) * 6);
         let minutos55 = litrosDisponibles / 55;
-        
-        e.aut55 = minutos55; // <--- AÑADIMOS ESTA LÍNEA PARA GUARDAR EL DATO
+        e.aut55 = minutos55; 
         e.hS55 = formatHora(ah + (minutos55 * 60000));
 
         // --- C. CÁLCULO DE CONSUMO MEDIO Y AUTONOMÍA ---
         let tTotalMinutos = (ah - e.tI) / 60000;
-        
-        // Solo calculamos si han pasado al menos 0.1 min para evitar errores
         if (tTotalMinutos > 0.1) {
             let litrosConsumidos = (e.pE - v) * 6;
             let consumoCalculado = litrosConsumidos / tTotalMinutos;
-            
-            // Si el consumo es positivo (han gastado aire)
             if (consumoCalculado > 0) {
                 e.rMed = consumoCalculado;
                 e.autMed = litrosDisponibles / e.rMed;
                 e.hSMed = formatHora(ah + (e.autMed * 60000));
             } else {
-                // Si no hay caída de presión, el consumo medio tiende a 0
-                // Pero no podemos calcular autonomía infinita
-                e.rMed = 0;
-                e.autMed = 0;
-                e.hSMed = "---";
+                e.rMed = 0; e.autMed = 0; e.hSMed = "---";
             }
         }
         
-        // Actualizamos la presión actual en memoria después de los cálculos
         e.pA = v;
 
-        // --- D. GUARDAR RESTO DE DATOS ---
+        // --- D. GESTIÓN DEL CHECKBOX "INFORMADO" ---
+        // Buscamos el contenedor del check
+        let checkCont = document.getElementById('alerta-check-container');
+        if (checkCont && checkCont.style.display !== 'none') {
+            // Leemos si el usuario ha marcado la casilla
+            e.informadoRegreso = document.getElementById('checkInformado').checked;
+            
+            // Si está informado, apagamos la alarma roja de la tarjeta
+            if (e.informadoRegreso) {
+                e.alerta = false;
+                e.silenciado = true;
+            }
+        }
+
+        // --- E. GUARDAR RESTO DE DATOS ---
         e.sit = document.getElementById('nSit').value; 
         e.obj = document.getElementById('nObj').value;
         e.prof = [
