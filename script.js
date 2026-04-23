@@ -390,10 +390,16 @@ function saveData() {
             e.silenciado = false;
             e.alerta = false;
             e.rMed = 0; 
+            
 
             // --- ÚNICO MOMENTO DONDE SE CALCULA LA PRESIÓN DE SEGURIDAD ---
             e.pSegReg = Math.round((v / 2) + 20);
+
+            // Esto desmarca el cuadro de informado al REACTIVAR
+        document.getElementById('checkInformado').checked = false;
+
         }
+                 
 
         // AQUÍ YA NO HAY CÁLCULO DE pSegReg, por lo que se mantiene fijo el valor anterior
         
@@ -587,6 +593,10 @@ function reactivarEquipo(i) {
     document.getElementById('nnp1').value = e.prof[0] === "-" ? "" : e.prof[0];
     document.getElementById('nnp2').value = e.prof[1] === "-" ? "" : e.prof[1];
     document.getElementById('nnp3').value = e.prof[2] === "-" ? "" : e.prof[2];
+
+    // --- LIMPIA EL MODAL AL REACTIVAR ---
+    document.getElementById('alerta-check-container').style.display = 'none';
+    document.getElementById('checkInformado').checked = false;
     
     // Abrimos el modal
     document.getElementById('modal').style.display = 'flex';
