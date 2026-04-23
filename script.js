@@ -209,7 +209,7 @@ function render() {
         let preA = e.alerta;
 
         // --- 1. LÓGICA DE ALARMAS ---
-        let alertaMinutos = [5, 10, 15, 20].includes(minT);
+        let alertaMinutos = [5, 10, 15, 20].includes(minT) && (e.ultimoMinutoControlado !== minT);
         let alertaReserva = e.pA <= 50;
         let avisoRegreso = (e.pA <= e.pSegReg) && !e.informadoRegreso;
         
