@@ -177,7 +177,8 @@ function addEquipo() {
         alerta: false, 
         silenciado: false, 
         informadoRegreso: false,
-        tramos: [] 
+        tramos: [],
+        ultimoMinutoControlado: -1,
     });
 
     sync(); 
@@ -380,6 +381,16 @@ function saveData() {
         let v = parseInt(b); // Presión introducida ahora
         let e = eqs[idS];
 
+        // --- CALCULAR MINUTO ACTUAL ---
+        let minActual = Math.floor((ah - e.tI) / 60000);
+        
+        // --- REGISTRAR QUE ESTE MINUTO YA ESTÁ CONTROLADO ---
+        e.ultimoMinutoControlado = minActual;
+        
+        // --- APAGAR ALARMAS INMEDIATAMENTE ---
+        e.alerta = false;
+        e.silenciado = true;
+
         // --- A. LÓGICA DE RE-ENTRADA (Solo ocurre si el equipo estaba en "FIN") ---
         if (!e.activo) {
             e.tI = ah;
@@ -390,6 +401,7 @@ function saveData() {
             e.silenciado = false;
             e.alerta = false;
             e.rMed = 0; 
+            e.ultimoMinutoControlado = -1;
             
 
             // --- ÚNICO MOMENTO DONDE SE CALCULA LA PRESIÓN DE SEGURIDAD ---
