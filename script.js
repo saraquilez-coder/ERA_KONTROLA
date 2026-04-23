@@ -247,7 +247,7 @@ function render() {
 
         // --- LÓGICA DE PARPADEO DEL FONDO DE LA TARJETA ---
         let claseParpadeo = "";
-        if (e.alerta && !e.silenciado) { 
+        if (e.alerta) { 
             // Si hay una alerta activa y no la hemos silenciado
             if (alertaReserva || avisoRegreso) {
                 claseParpadeo = "fondo-alerta-roja";
@@ -278,7 +278,7 @@ function render() {
         }
 
         let cardHtml = `
-           <div class="card-equipo ${claseParpadeo}" onclick="toggleDetalles(${i})" style="border-left-color: ${colD}; background-color: ${e.activo ? '' : '#6ddf7357'}; color: ${e.activo ? '' : 'white'};">
+           <div class="card-equipo ${claseParpadeo}" onclick="toggleDetalles(${i})" style="border-left-color: ${colD}; background-color: ${e.activo ? '' : '#6ddf7357'};">
                  <div class="card-header-resumen">
                     <div class="circulo-presion" style="${estiloC} width: 80px; height: 80px; min-width: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative;">
                         <div style="position: absolute; width: 66px; height: 66px; background: white; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -397,7 +397,7 @@ function saveData() {
         let ah = Date.now(); 
 
         // ====================================================================
-        // 1. ESTO SE GUARDA SIEMPRE (Localización, Objetivo, Intervinientes)
+        // 1. ESTO SE GUARDA SIEMPRE (Localización, Objetivo, Intervinientes y CHECKBOX)
         // ====================================================================
         e.sit = document.getElementById('nSit').value; 
         e.obj = document.getElementById('nObj').value;
@@ -406,6 +406,16 @@ function saveData() {
             document.getElementById('nnp2').value || "-",
             document.getElementById('nnp3').value || "-"
         ];
+
+        // --- GESTIÓN DEL CHECKBOX "INFORMADO" (Movido aquí para que funcione siempre) ---
+        let checkCont = document.getElementById('alerta-check-container');
+        if (checkCont && checkCont.style.display !== 'none') {
+            e.informadoRegreso = document.getElementById('checkInformado').checked;
+            if (e.informadoRegreso) {
+                e.alerta = false;
+                e.silenciado = true;
+            }
+        }
 
         // ====================================================================
         // 2. SOLO SE GUARDA SI HAY NÚMERO Y ES DISTINTO A LA PRESIÓN ANTERIOR
@@ -422,7 +432,7 @@ function saveData() {
             e.ultimoMinutoControlado = minActual;
             
             e.alerta = false;
-            e.silenciado = true;
+            e.silenciado = false;
 
             if (!e.activo) {
                 e.tI = ah;
@@ -437,7 +447,6 @@ function saveData() {
                 e.hSMed = "--:--"; 
                 e.ultimoMinutoControlado = -1;
                 e.pSegReg = Math.round((v / 2) + 20);
-                document.getElementById('checkInformado').checked = false;
             }
 
             let litrosDisponibles = Math.max(0, (v - 50) * 6);
@@ -459,15 +468,6 @@ function saveData() {
             }
             
             e.pA = v;
-
-            let checkCont = document.getElementById('alerta-check-container');
-            if (checkCont && checkCont.style.display !== 'none') {
-                e.informadoRegreso = document.getElementById('checkInformado').checked;
-                if (e.informadoRegreso) {
-                    e.alerta = false;
-                    e.silenciado = true;
-                }
-            }
         } 
         // ====================================================================
 
