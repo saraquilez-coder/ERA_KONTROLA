@@ -391,84 +391,14 @@ function hideModal() { document.getElementById('modal').style.display='none'; }
 
 function saveData() {
     let b = document.getElementById('nB').value;
-    if (idS !== -1) {
-        let ah = Date.now(); 
+    
+    if (idS !== -1) { 
         let e = eqs[idS];
+        let ah = Date.now(); 
 
-        // === INICIO DEL CAMBIO: Solo si hay presión ===
-        if (b !== "") {
-            let v = parseInt(b);
-
-        // --- CALCULAR MINUTO ACTUAL ---
-        let minActual = Math.floor((ah - e.tI) / 60000);
-        
-        // --- REGISTRAR QUE ESTE MINUTO YA ESTÁ CONTROLADO ---
-        e.ultimoMinutoControlado = minActual;
-        
-        // --- APAGAR ALARMAS INMEDIATAMENTE ---
-        e.alerta = false;
-        e.silenciado = true;
-
-        // --- A. LÓGICA DE RE-ENTRADA (Solo ocurre si el equipo estaba en "FIN") ---
-        if (!e.activo) {
-            e.tI = ah;
-            e.hE = formatHora(ah);
-            e.pE = v; 
-            e.activo = true;
-            e.informadoRegreso = false;
-            e.silenciado = false;
-            e.alerta = false;
-            e.rMed = 0;
-            e.autMed = 0;     // Autonomía media a 0
-            e.hSMed = "--:--"; // Previsión hora a guiones 
-            e.ultimoMinutoControlado = -1;
-            e.pSegReg = Math.round((v / 2) + 20);
-
-            // Esto desmarca el cuadro de informado al REACTIVAR
-        document.getElementById('checkInformado').checked = false;
-
-        }
-       
-        e.hUltActualizacion = formatHora(ah); 
-        e.tU = ah; 
-
-        // --- B. ACTUALIZAR PREVISIÓN SALIDA 55 L/MIN ---
-        let litrosDisponibles = Math.max(0, (v - 50) * 6);
-        let minutos55 = litrosDisponibles / 55;
-        e.aut55 = minutos55; 
-        e.hS55 = formatHora(ah + (minutos55 * 60000));
-
-        // --- C. CÁLCULO DE CONSUMO MEDIO Y AUTONOMÍA ---
-        let tTotalMinutos = (ah - e.tI) / 60000;
-        if (tTotalMinutos > 0.1) {
-            let litrosConsumidos = (e.pE - v) * 6;
-            let consumoCalculado = litrosConsumidos / tTotalMinutos;
-            if (consumoCalculado > 0) {
-                e.rMed = consumoCalculado;
-                e.autMed = litrosDisponibles / e.rMed;
-                e.hSMed = formatHora(ah + (e.autMed * 60000));
-            } else {
-                e.rMed = 0; e.autMed = 0; e.hSMed = "---";
-            }
-        }
-        
-        e.pA = v;
-
-        // --- D. GESTIÓN DEL CHECKBOX "INFORMADO" ---
-        // Buscamos el contenedor del check
-        let checkCont = document.getElementById('alerta-check-container');
-        if (checkCont && checkCont.style.display !== 'none') {
-            // Leemos si el usuario ha marcado la casilla
-            e.informadoRegreso = document.getElementById('checkInformado').checked;
-            
-            // Si está informado, apagamos la alarma roja de la tarjeta
-            if (e.informadoRegreso) {
-                e.alerta = false;
-                e.silenciado = true;
-            }
-        }
-}
-        // --- E. GUARDAR RESTO DE DATOS ---
+        // ====================================================================
+        // 1. ESTO SE GUARDA SIEMPRE (Localización, Objetivo, Intervinientes)
+        // ====================================================================
         e.sit = document.getElementById('nSit').value; 
         e.obj = document.getElementById('nObj').value;
         e.prof = [
@@ -476,7 +406,71 @@ function saveData() {
             document.getElementById('nnp2').value || "-",
             document.getElementById('nnp3').value || "-"
         ];
-        
+
+        // ====================================================================
+        // 2. SOLO SE GUARDA SI HAY NÚMERO Y ES DISTINTO A LA PRESIÓN ANTERIOR
+        // ====================================================================
+        if (b !== "" && parseInt(b) !== e.pA) {
+            let v = parseInt(b); 
+            
+            e.hUltActualizacion = formatHora(ah); 
+            e.tU = ah; 
+            e.hAct = formatHora(ah);       
+            e.tUltimaAct = ah;             
+
+            let minActual = Math.floor((ah - e.tI) / 60000);
+            e.ultimoMinutoControlado = minActual;
+            
+            e.alerta = false;
+            e.silenciado = true;
+
+            if (!e.activo) {
+                e.tI = ah;
+                e.hE = formatHora(ah);
+                e.pE = v; 
+                e.activo = true;
+                e.informadoRegreso = false;
+                e.silenciado = false;
+                e.alerta = false;
+                e.rMed = 0;
+                e.autMed = 0;     
+                e.hSMed = "--:--"; 
+                e.ultimoMinutoControlado = -1;
+                e.pSegReg = Math.round((v / 2) + 20);
+                document.getElementById('checkInformado').checked = false;
+            }
+
+            let litrosDisponibles = Math.max(0, (v - 50) * 6);
+            let minutos55 = litrosDisponibles / 55;
+            e.aut55 = minutos55; 
+            e.hS55 = formatHora(ah + (minutos55 * 60000));
+
+            let tTotalMinutos = (ah - e.tI) / 60000;
+            if (tTotalMinutos > 0.1) {
+                let litrosConsumidos = (e.pE - v) * 6;
+                let consumoCalculado = litrosConsumidos / tTotalMinutos;
+                if (consumoCalculado > 0) {
+                    e.rMed = consumoCalculado;
+                    e.autMed = litrosDisponibles / e.rMed;
+                    e.hSMed = formatHora(ah + (e.autMed * 60000));
+                } else {
+                    e.rMed = 0; e.autMed = 0; e.hSMed = "---";
+                }
+            }
+            
+            e.pA = v;
+
+            let checkCont = document.getElementById('alerta-check-container');
+            if (checkCont && checkCont.style.display !== 'none') {
+                e.informadoRegreso = document.getElementById('checkInformado').checked;
+                if (e.informadoRegreso) {
+                    e.alerta = false;
+                    e.silenciado = true;
+                }
+            }
+        } 
+        // ====================================================================
+
         hideModal(); 
         sync(); 
         render();
@@ -664,3 +658,11 @@ document.addEventListener('visibilitychange', async () => {
         activarMantenerPantalla();
     }
 });
+
+// Despertar el motor de audio cada vez que se toca la pantalla
+document.body.addEventListener('click', () => {
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+        console.log("Audio despertado por el usuario");
+    }
+}, true);
