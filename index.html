@@ -58,7 +58,29 @@
             <input type="text" id="int-dir" placeholder="DIRECCIÓN">
             <button class="btn btn-blue" onclick="iniciarIntervencion()">INICIAR INTERVENCIÓN</button>
         </div>
+    
+       
+    <div id="resumen-binomios" style="display: none; justify-content: space-between; gap: 10px; margin-bottom: 15px; font-weight: bold; font-size: 0.85rem;">
+    
+        <div style="flex: 1; background: #f8f9fa; padding: 10px; border-radius: 8px; text-align: center; color: #444; border: 1px solid #ddd;"> TOTAL<br><span id="count-total" style="font-size: 1.4rem;">0</span>
+        </div>
+    
+    <div onclick="document.getElementById('L_ZONA').scrollIntoView({behavior: 'smooth'})" 
+         style="flex: 1; background: #f8f9fa; padding: 10px; border-radius: 8px; text-align: center; color: #bd2020; border: 1px solid #ddd; cursor: pointer;"
+         title="Ir a equipos activos">
+        ACTIVOS<br><span id="count-activos" style="font-size: 1.4rem;">0</span>
+    </div>
+    
+    <div onclick="document.getElementById('L_FUERA').scrollIntoView({behavior: 'smooth'})" 
+         style="flex: 1; background: #f8f9fa; padding: 10px; border-radius: 8px; text-align: center; color: #22df51; border: 1px solid #ccc; cursor: pointer;"
+         title="Ir a equipos fuera">
+        FUERA DE ZONA CALIENTE<br><span id="count-fuera" style="font-size: 1.4rem;">0</span>
+    </div>
+    </div>
 
+
+    
+        
         <div id="btn-abrir-container" style="display:none; margin-bottom: 15px;">
             <button class="btn btn-blue" onclick="toggleFormulario()" style="width: 100%; background-color: #3498db; padding: 15px; font-weight: bold; border-radius: 10px; border: none; cursor: pointer;">
                 + AÑADIR NUEVO BINOMIO

@@ -41,12 +41,12 @@ function checkActiva() {
     if(intervencion) {
         document.getElementById('setup-intervencion').style.display='none';
         document.getElementById('display-intervencion').style.display='block';
-        
-        // --- ESTO ES LO QUE TIENES QUE AÑADIR ---
+        document.getElementById('resumen-binomios').style.display = 'flex';
+               
         if(document.getElementById('contenedor-historial-btn')) {
             document.getElementById('contenedor-historial-btn').style.display = 'none';
         }
-        // ----------------------------------------
+        
 
         document.getElementById('btn-abrir-container').style.display='block';
         
@@ -199,6 +199,19 @@ function addEquipo() {
 
 
 function render() {
+    
+    // CÁLCULO DE LOS CONTADORES
+    let nTotal = eqs.length;
+    let nActivos = eqs.filter(e => e.activo).length;
+    let nFuera = nTotal - nActivos;
+
+    // Actualizamos los números en los cuadros del HTML
+    if (document.getElementById('count-total')) {
+        document.getElementById('count-total').innerText = nTotal;
+        document.getElementById('count-activos').innerText = nActivos;
+        document.getElementById('count-fuera').innerText = nFuera;
+    }
+
     if (!intervencion) return;
     let hZ = ""; let hF = ""; let hJump = ""; let ah = Date.now();
     let cS = false; let cV = false;
@@ -219,7 +232,7 @@ function render() {
 
         let msjAlerta = "";
         if (alertaReserva) {
-            msjAlerta = "⚠️ PROXIMIDAD A RESERVA";
+            msjAlerta = "⚠️ EQUIPO EN RESERVA - SALIR INMEDIATAMENTE";
         } else if (avisoRegreso) {
             msjAlerta = "⚠️ PRESIÓN DE SEGURIDAD ALCANZADA - INFORME A EQUIPO";
         } else if (alertaMinutos) {
@@ -265,8 +278,8 @@ function render() {
         }
 
         let cardHtml = `
-           <div class="card-equipo ${claseParpadeo}" onclick="toggleDetalles(${i})" style="border-left-color: ${colD}">
-                <div class="card-header-resumen">
+           <div class="card-equipo ${claseParpadeo}" onclick="toggleDetalles(${i})" style="border-left-color: ${colD}; background-color: ${e.activo ? '' : '#6ddf7357'}; color: ${e.activo ? '' : 'white'};">
+                 <div class="card-header-resumen">
                     <div class="circulo-presion" style="${estiloC} width: 80px; height: 80px; min-width: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative;">
                         <div style="position: absolute; width: 66px; height: 66px; background: white; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                             <span style="font-size: 1.6rem; font-weight: bold; line-height: 1; color: #333;">${Math.round(e.pA)}</span>
@@ -327,7 +340,7 @@ function render() {
     });
 
     document.getElementById('L_ZONA').innerHTML = hZ;
-    document.getElementById('L_FUERA').innerHTML = hF !== "" ? `<div class="separador" style="background:#28a745; color:white; margin-top:30px; padding:10px; border-radius:8px; text-align:center;">EQUIPOS FUERA DE ZONA</div>${hF}` : "";
+    document.getElementById('L_FUERA').innerHTML = hF !== "" ? `<div class="separador" style="background:#28a745; color:white; margin-top:80px; margin-bottom:30px; padding:10px; border-radius:8px; text-align:center; font-weight:bold;">EQUIPOS FUERA DE ZONA</div>${hF}` : "";
 
     // --- LÓGICA DE ALERTA GLOBAL ---
     let tB = document.getElementById('timer-box');
@@ -378,10 +391,13 @@ function hideModal() { document.getElementById('modal').style.display='none'; }
 
 function saveData() {
     let b = document.getElementById('nB').value;
-    if (b !== "" && idS !== -1) {
+    if (idS !== -1) {
         let ah = Date.now(); 
-        let v = parseInt(b); // Presión introducida ahora
         let e = eqs[idS];
+
+        // === INICIO DEL CAMBIO: Solo si hay presión ===
+        if (b !== "") {
+            let v = parseInt(b);
 
         // --- CALCULAR MINUTO ACTUAL ---
         let minActual = Math.floor((ah - e.tI) / 60000);
@@ -406,19 +422,13 @@ function saveData() {
             e.autMed = 0;     // Autonomía media a 0
             e.hSMed = "--:--"; // Previsión hora a guiones 
             e.ultimoMinutoControlado = -1;
-            
-
-            // --- ÚNICO MOMENTO DONDE SE CALCULA LA PRESIÓN DE SEGURIDAD ---
             e.pSegReg = Math.round((v / 2) + 20);
 
             // Esto desmarca el cuadro de informado al REACTIVAR
         document.getElementById('checkInformado').checked = false;
 
         }
-                 
-
-        // AQUÍ YA NO HAY CÁLCULO DE pSegReg, por lo que se mantiene fijo el valor anterior
-        
+       
         e.hUltActualizacion = formatHora(ah); 
         e.tU = ah; 
 
@@ -457,7 +467,7 @@ function saveData() {
                 e.silenciado = true;
             }
         }
-
+}
         // --- E. GUARDAR RESTO DE DATOS ---
         e.sit = document.getElementById('nSit').value; 
         e.obj = document.getElementById('nObj').value;
@@ -575,6 +585,20 @@ function toggleFormulario() {
 // --- FUNCIÓN PARA FINALIZAR UN EQUIPO MANUALMENTE ---
 function setEstado(i, activo) { 
     if (!activo) {
+
+        // 1. Pedimos la presión.
+        let pFinal = prompt("Introduzca PRESIÓN DE SALIDA para " + eqs[i].n, Math.round(eqs[i].pA));
+        
+        // 2. SOLO actualizamos si el usuario ha escrito un número y ha dado a OK.
+        // Si pulsa CANCELAR, pFinal es null. Al no entrar en este IF, 
+        // el equipo mantiene su presión actual intacta y el código SIGUE adelante.
+        if (pFinal !== null && pFinal !== "") {
+            let num = parseInt(pFinal);
+            if (!isNaN(num)) {
+                eqs[i].pA = num;
+            }
+        }
+
         let ahora = Date.now();
         
         // Asignamos la hora de salida
