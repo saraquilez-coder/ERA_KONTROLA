@@ -26,6 +26,7 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 function iniciarIntervencion() {
+    activarMantenerPantalla();
     let n = document.getElementById('int-nom').value;
     let d = document.getElementById('int-dir').value;
     if(!n) return;
@@ -78,6 +79,7 @@ function finalizarTodo() {
                 if (e.activo) {
                     e.activo = false;
                     e.hSalida = formatHora(ahora);
+                    e.tTramo = ahora - e.tI;
                     e.tAcumuladoPrevio += (ahora - e.tI);
                     if (!e.tramos) e.tramos = [];
                     e.tramos.push(JSON.parse(JSON.stringify(e)));
@@ -400,7 +402,9 @@ function saveData() {
             e.informadoRegreso = false;
             e.silenciado = false;
             e.alerta = false;
-            e.rMed = 0; 
+            e.rMed = 0;
+            e.autMed = 0;     // Autonomía media a 0
+            e.hSMed = "--:--"; // Previsión hora a guiones 
             e.ultimoMinutoControlado = -1;
             
 
@@ -617,3 +621,22 @@ function reactivarEquipo(i) {
     document.getElementById('modal').style.display = 'flex';
 }
 
+let wakeLock = null;
+
+async function activarMantenerPantalla() {
+    try {
+        if ('wakeLock' in navigator) {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log("Pantalla bloqueada: No se dormirá");
+        }
+    } catch (err) {
+        console.log("Wake Lock no disponible:", err);
+    }
+}
+
+// Si el usuario cambia de pestaña y vuelve, se reactiva
+document.addEventListener('visibilitychange', async () => {
+    if (wakeLock !== null && document.visibilityState === 'visible') {
+        activarMantenerPantalla();
+    }
+});
