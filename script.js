@@ -518,7 +518,7 @@ function descargarIntervencion(idx) {
                     t.pA,
                     (t.pE - t.pA),
                     Math.round(t.rMed),
-                    formatTimeMS(t.tAcumuladoPrevio)
+                    formatTimeMS(t.tTramo || 0)
                 ].join(";");
                 csvContent += fila + "\n";
             });
@@ -575,6 +575,9 @@ function setEstado(i, activo) {
         
         // Asignamos la hora de salida
         eqs[i].hSalida = formatHora(ahora); 
+
+        // Correccion para que no haga un acumulado en la REACTIVACION
+        eqs[i].tTramo = ahora - eqs[i].tI;
         
         // Sumamos el tiempo que han estado dentro al acumulado
         eqs[i].tAcumuladoPrevio += (ahora - eqs[i].tI);
